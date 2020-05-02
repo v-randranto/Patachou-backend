@@ -26,53 +26,44 @@ router.post('/email', function (req, res, next) {
 });
 
 router.post('/member', function (req, res, next) {
-  console.log('> create member body', req.body);
   if (!req.body) {
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
-  }
+  }    
+     member.addOne(req, res, next);
 
-  if (req.body) {
-    if (req.body.userName && req.body.password) {
-      member.createMember(req, res, next);
-    }
-  }
 });
 
 router.get('/members', function (req, res, next) {
-  // OK
   if (!req.body) {
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
   }
 
-  member.getMembers(req, res, next);
+  member.findMany(req, res, next);
 });
 
 router.get('/member/:id', function (req, res, next) {
-  // OK
   if (!req.params.id) {
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
   }
-  member.getOneMember(req, res, next);
+  member.findOne(req, res, next);
 });
 
 router.post('/member/:id', function (req, res, next) {
-  // OK
   if (!req.body && !req.params) {
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
   }
-  member.updateOneMember(req, res, next);
+  member.updateOne(req, res, next);
 });
 
 router.delete('/member/:id', function (req, res, next) {
-  // OK
   if (!req.params) {
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
@@ -80,8 +71,7 @@ router.delete('/member/:id', function (req, res, next) {
   }
 
   if (req.params.id) {
-    console.log('on va faire le delete...')
-    member.deleteOneMember(req, res, next);
+    member.deleteOne(req, res, next);
   }
 });
 

@@ -5,6 +5,7 @@
 /tmp
 /out-tsc
 .env
+/data
 # Only exists if Bazel was run
 /bazel-out
 

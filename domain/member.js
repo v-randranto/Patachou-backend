@@ -3,26 +3,24 @@ const mongoose = require('mongoose');
 const Member = require('../models/member');
 const httpStatusCodes = require("../constants/httpStatusCodes");
 
-exports.createMember = (req, res, next) => {
-    // OK
+exports.addOne = (req, res, next) => {
   const member = new Member(req.body);
   member.save().then(
     () => {
       res.status(httpStatusCodes.CREATED).json({
-        message: `Member ${req.body.userName} created !`
+        message: `Member created !`
       });
     }
   ).catch(
     (error) => {
-      res.status(httpStatusCodes.BAD_REQUEST).json({
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
         error: error
       });
     }
   );
 };
 
-exports.getOneMember = (req, res, next) => {
-    // OK
+exports.findOne = (req, res, next) => {
   Member.findOne({
     _id: mongoose.mongo.ObjectId(req.params.id)
   }).then(
@@ -31,20 +29,17 @@ exports.getOneMember = (req, res, next) => {
     }
   ).catch(
     (error) => {
-      res.status(httpStatusCodes.NOT_FOUND).json({
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
         error: error
       });
     }
   );
 };
 
-exports.updateOneMember = (req, res, next) => {
-  // OK
-  Member.update({_id: mongoose.mongo.ObjectId(req.params.id)}, req.body).then(
+exports.updateOne = (req, res, next) => {
+  Member.updateOne({_id: mongoose.mongo.ObjectId(req.params.id)}, req.body).then(
     () => {
-      res.status(httpStatusCodes.NO_CONTENT).json({
-        message: `Member updated !`
-      });
+      res.status(httpStatusCodes.NO_CONTENT).end();
     }
   ).catch(
     (error) => {
@@ -55,13 +50,10 @@ exports.updateOneMember = (req, res, next) => {
   );
 };
 
-exports.deleteOneMember = (req, res, next) => {
-  // OK
+exports.deleteOne = (req, res, next) => {
   Member.deleteOne({_id: mongoose.mongo.ObjectId(req.params.id)}).then(
     () => {
-      res.status(httpStatusCodes.NO_CONTENT).json({
-        message: `Member deleted !`
-      });
+      res.status(httpStatusCodes.NO_CONTENT).json();
     }
   ).catch(
     (error) => {
@@ -72,12 +64,10 @@ exports.deleteOneMember = (req, res, next) => {
   );
 };
 
-exports.getMembers = (req, res, next) => {
-  // OK
+exports.findMany = (req, res, next) => {
   Member.find().then(
     (members) => {        
-    //   res.status(httpStatusCodes.OK).json(members);
-    res.status(httpStatusCodes.OK).end(JSON.stringify(members));
+      res.status(httpStatusCodes.OK).json(members);
     }
   ).catch(
     (error) => {
