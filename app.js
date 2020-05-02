@@ -46,8 +46,8 @@ app.use((req, res, next) => {
 
 app.use(expressSession(options));
 
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(express.static('public'));
 
 
 app.use('/', homeRouter);
