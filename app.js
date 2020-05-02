@@ -9,17 +9,23 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 
 const homeRouter = require('./routes/home');
+const testRouter = require('./routes/test');
 
 const app = express();
-const dbUrl = `mongodb://localhost:27017/patachou`;
+let dbUrl;
+if (process.env.NODE_ENV='DEV') {
+  dbUrl = process.env.DB_URL_DEV;
+} else {
+  dbUrl = process.env.DB_URL_PROD;
+}
 
 /**
  *  Middlewares 
  */
 
-mongoose.connect(dbUrl, { useUnifiedTopology: true })
+mongoose.connect(dbUrl, { useUnifiedTopology: true, useNewUrlParser: true })
   .then(() => {
-    console.log('Connected to MongoDB Atlas...');
+    console.log('Connected to MongoDB ');
   })
   .catch((error) => {
     console.error(error);
@@ -51,6 +57,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 
 app.use('/', homeRouter);
+app.use('/test', testRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

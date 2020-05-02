@@ -3,7 +3,7 @@ const router = express.Router();
 
 /* Test */
 router.get('/', function(req, res, next) {
-  res.send('home', { title: 'Patachou' });
+  res.status(httpStatusCodes.OK).end('home', { title: 'Patachou' });
 });
 
 module.exports = router;
