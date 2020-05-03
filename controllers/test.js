@@ -1,10 +1,14 @@
 'use strict'
 const mongoose = require('mongoose');
 const Member = require('../models/member');
+const cipher = require('../utils/cipher');
 const httpStatusCodes = require("../constants/httpStatusCodes");
 
 exports.addOne = (req, res) => {
-  const member = new Member(req.body);
+  const { hash, salt } = cipher.getSaltHash(req.body.password);
+  const member = new Member(req.body);   
+  member.password = hash;
+  member.salt = salt;
   member.save().then(
     () => {
       res.status(httpStatusCodes.CREATED).json({
@@ -68,6 +72,24 @@ exports.find = (req, res) => {
   Member.find().then(
     (members) => {        
       res.status(httpStatusCodes.OK).json(members);
+    }
+  ).catch(
+    (error) => {
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        error: error
+      });
+    }
+  );
+};
+
+exports.connect = (req, res) => {
+  Member.findOne({
+    userName: req.body.userName
+  }).then(
+    (member) => {
+      const result = cipher.check(req.body.password, member.salt, member.password);
+      if (result) {res.status(httpStatusCodes.OK).json(member);}
+      else {res.end('password KO');}
     }
   ).catch(
     (error) => {

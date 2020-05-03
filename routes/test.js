@@ -3,7 +3,7 @@ const mailSender = new (require('../utils/email'))();
 const errorHandler = require('../utils/errorHandler');
 const httpStatusCodes = require('../constants/httpStatusCodes');
 const router = express.Router();
-const member = require('../domain/member');
+const test = require('../controllers/test');
 
 /* Test */
 router.post('/email', function (req, res) {
@@ -33,7 +33,7 @@ router.post('/member', function (req, res, next) {
       error: error,
     });
   }    
-     member.addOne(req, res, next);
+     test.addOne(req, res, next);
 
 });
 
@@ -45,27 +45,27 @@ router.get('/members', function (req, res, next) {
     });
   }
 
-  member.find(req, res, next);
+  test.find(req, res, next);
 });
 
-router.get('/member/:id', function (req, res, next) {
-  if (!req.params) {
+router.get('/connect', function (req, res, next) {
+  if (!req.body) {
     const error = new Error('there is no request params');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
   }
-  member.findOne(req, res, next);
+  test.connect(req, res, next);
 });
 
 router.post('/member/:id', function (req, res, next) {
-  if (!req.body || !req.params) {
-    const error = new Error('there is no request body or params');
+  if (!req.body ) {
+    const error = new Error('there is no request body ');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
   }
-  member.updateOne(req, res, next);
+  test.updateOne(req, res, next);
 });
 
 router.delete('/member/:id', function (req, res, next) {
@@ -77,7 +77,7 @@ router.delete('/member/:id', function (req, res, next) {
   }
 
   if (req.params.id) {
-    member.deleteOne(req, res, next);
+    test.deleteOne(req, res, next);
   }
 });
 
