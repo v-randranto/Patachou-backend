@@ -8,6 +8,7 @@ const http = require('http');
  * Get port from environment and store in Express.
  */
 
+// eslint-disable-next-line no-undef
 const port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
@@ -22,7 +23,8 @@ const server = http.createServer(app);
  */
 
 server.listen(port, function () {
-  console.log("Express HTTP Server listening on" + port);
+  // eslint-disable-next-line no-undef
+  console.log(`Server ${process.env.NODE_ENV} listening on port ${port}`);
 });
 server.on('error', onError);
 server.on('listening', onListening);
@@ -77,10 +79,12 @@ function onError(error) {
   switch (error.code) {
     case 'EACCES':
       console.error(bind + ' requires elevated privileges');
+      // eslint-disable-next-line no-undef
       process.exit(1);
       break;
     case 'EADDRINUSE':
       console.error(bind + ' is already in use');
+      // eslint-disable-next-line no-undef
       process.exit(1);
       break;
     default:

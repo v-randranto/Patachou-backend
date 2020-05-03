@@ -6,8 +6,9 @@ const router = express.Router();
 const member = require('../domain/member');
 
 /* Test */
-router.post('/email', function (req, res, next) {
+router.post('/email', function (req, res) {
   if (!req.body) {
+    const err = new Error('there is no request body');
     errorHandler.perform(res, err, httpStatusCodes.BAD_REQUEST);
   }
 
@@ -15,7 +16,7 @@ router.post('/email', function (req, res, next) {
     if (req.body.subject && req.body.recipient && req.body.text) {
       mailSender
         .send(req.body.recipient, req.body.subject, req.body.text)
-        .then((i) => {
+        .then(() => {
           res.status(httpStatusCodes.OK).end('email envoyé');
         })
         .catch((err) => {
@@ -27,6 +28,7 @@ router.post('/email', function (req, res, next) {
 
 router.post('/member', function (req, res, next) {
   if (!req.body) {
+    const error = new Error('there is no request body');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -37,16 +39,18 @@ router.post('/member', function (req, res, next) {
 
 router.get('/members', function (req, res, next) {
   if (!req.body) {
+    const error = new Error('there is no request body');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
   }
 
-  member.findMany(req, res, next);
+  member.find(req, res, next);
 });
 
 router.get('/member/:id', function (req, res, next) {
-  if (!req.params.id) {
+  if (!req.params) {
+    const error = new Error('there is no request params');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -55,7 +59,8 @@ router.get('/member/:id', function (req, res, next) {
 });
 
 router.post('/member/:id', function (req, res, next) {
-  if (!req.body && !req.params) {
+  if (!req.body || !req.params) {
+    const error = new Error('there is no request body or params');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -65,6 +70,7 @@ router.post('/member/:id', function (req, res, next) {
 
 router.delete('/member/:id', function (req, res, next) {
   if (!req.params) {
+    const error = new Error('there is no request params');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });

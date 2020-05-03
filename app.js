@@ -1,8 +1,11 @@
 'use strict'
 require('dotenv').config();
 const createError = require('http-errors');
-const express = require('express');
-const path = require('path');
+const app = require('express')();
+const cors = require('cors');
+const config = require('config');
+
+// const path = require('path');
 const expressSession = require("express-session");
 const MongoStore = require("connect-mongo")(expressSession);
 const mongoose = require('mongoose');
@@ -11,13 +14,9 @@ const bodyParser = require('body-parser');
 const homeRouter = require('./routes/home');
 const testRouter = require('./routes/test');
 
-const app = express();
-let dbUrl;
-if (process.env.NODE_ENV='DEV') {
-  dbUrl = process.env.DB_URL_DEV;
-} else {
-  dbUrl = process.env.DB_URL_PROD;
-}
+app.use(cors())
+
+const dbUrl = config.db.url;
 
 /**
  *  Middlewares 
@@ -34,27 +33,24 @@ mongoose.connect(dbUrl, { useUnifiedTopology: true, useNewUrlParser: true })
 const options = {
   store: new MongoStore({
     url: dbUrl,
-    ttl: 60 * 60, // expiration après une heure
-    collection: 'sessions'
+    ttl: config.session.ttl,
+    collection: config.session.name
   }),
-  secret: "jeu multi-joueurs",
+  secret: config.session.secret,
   saveUninitialized: true,
   resave: false
 };
-
-// autoriser les requêtes CORS
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  next();
-});
 
 app.use(expressSession(options));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// TODO provisoire à supprimer
+app.use(function(req, res, next) {
+  console.log('config', config);
+  next();
+});
 
 app.use('/', homeRouter);
 app.use('/test', testRouter);
@@ -64,9 +60,9 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
+// TODO: error handler à revoir
+app.use(function(err, req, res) {
+  // set locals, only providing error in development  
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
