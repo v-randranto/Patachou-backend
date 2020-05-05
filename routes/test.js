@@ -4,31 +4,35 @@ const errorHandler = require('../utils/errorHandler');
 const httpStatusCodes = require('../constants/httpStatusCodes');
 const router = express.Router();
 const test = require('../controllers/test');
+const logger = require('../utils/logger');
 
 /* Test */
 router.post('/email', function (req, res) {
   if (!req.body) {
-    const err = new Error('there is no request body');
-    errorHandler.perform(res, err, httpStatusCodes.BAD_REQUEST);
+    const error = new Error('there is no request body');
+    logger.error(error);
+    errorHandler.perform(res, error, httpStatusCodes.BAD_REQUEST);
   }
 
-  if (req.body) {
     if (req.body.subject && req.body.recipient && req.body.text) {
       mailSender
         .send(req.body.recipient, req.body.subject, req.body.text)
         .then(() => {
+          logger.info(req.body);
           res.status(httpStatusCodes.OK).end('email envoyé');
         })
         .catch((err) => {
+          logger.error(`email ko - ${req.body} - ${err}`);
           errorHandler.perform(res, err, httpStatusCodes.INTERNAL_SERVER_ERROR);
         });
-    }
+   
   }
 });
 
-router.post('/member', function (req, res, next) {
+router.post('/cr-member', function (req, res, next) {
   if (!req.body) {
     const error = new Error('there is no request body');
+    logger.error(error);
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -37,9 +41,22 @@ router.post('/member', function (req, res, next) {
 
 });
 
+router.post('/gt-member', function (req, res, next) {
+  if (!req.body) {
+    const error = new Error('there is no request body');
+    logger.error(error);
+    res.status(httpStatusCodes.BAD_REQUEST).json({
+      error: error,
+    });
+  }    
+     test.findOne(req, res, next);
+
+});
+
 router.get('/members', function (req, res, next) {
   if (!req.body) {
     const error = new Error('there is no request body');
+    logger.error(error);
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -48,8 +65,9 @@ router.get('/members', function (req, res, next) {
   test.find(req, res, next);
 });
 
-router.get('/connect', function (req, res, next) {
+router.post('/connect', function (req, res, next) {
   if (!req.body) {
+    logger.error(error);
     const error = new Error('there is no request params');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
@@ -58,8 +76,9 @@ router.get('/connect', function (req, res, next) {
   test.connect(req, res, next);
 });
 
-router.post('/member/:id', function (req, res, next) {
+router.post('/ud-member', function (req, res, next) {
   if (!req.body ) {
+    logger.error(error);
     const error = new Error('there is no request body ');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,

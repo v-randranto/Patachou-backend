@@ -1,15 +1,16 @@
 'use strict'
-
+require('dotenv').config();
 const app = require('./app');
 const debug = require('debug')('backend:server');
 const http = require('http');
-
+const config = require('config');
+const logger = require('./utils/logger');
 /**
  * Get port from environment and store in Express.
  */
 
 // eslint-disable-next-line no-undef
-const port = normalizePort(process.env.PORT || '3000');
+const port = normalizePort(process.env.PORT || config.port);
 app.set('port', port);
 
 /**
@@ -17,6 +18,7 @@ app.set('port', port);
  */
 
 const server = http.createServer(app);
+
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -35,9 +37,9 @@ server.on('listening', onListening);
 const ioServer = require("socket.io")(server);
 
 ioServer.on("connect", function (ioSocket) {
-  console.log('client connected !');
+  logger.info('client connected !');
   ioSocket.on("message", function (message){
-    console.log(message);
+    logger.info(message);
   });
 });
 
@@ -78,12 +80,12 @@ function onError(error) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+      logger.error(bind + ' requires elevated privileges');
       // eslint-disable-next-line no-undef
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+      logger.error(bind + ' is already in use');
       // eslint-disable-next-line no-undef
       process.exit(1);
       break;
