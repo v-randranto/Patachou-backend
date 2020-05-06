@@ -66,15 +66,15 @@ app.get('/*', function (req, res) {
 // });
 
 // TODO: error handler à revoir
-app.use(function (err, req, res) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-  logger.error(
-    `${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method}`
-  );
-  // render the error page
-  res.status(err.status || 500).end();
-});
+// app.use(function (err, req, res) {
+//   // set locals, only providing error in development
+//   res.locals.message = err.message;
+//   res.locals.error = req.app.get('env') === 'development' ? err : {};
+//   logger.error(
+//     `${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method}`
+//   );
+//   // render the error page
+//   res.status(err.status || 500).end();
+// });
 
 module.exports = app;
