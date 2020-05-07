@@ -5,12 +5,17 @@ const httpStatusCodes = require('../constants/httpStatusCodes');
 const router = express.Router();
 const test = require('../controllers/test');
 const logger = require('../utils/logger');
+// eslint-disable-next-line no-undef
+const { base } = require('path').parse(__filename);
+const getLogPrefix = (sessionId) => {
+  return `[ID=${sessionId}] [${base}]`;
+}
 
 /* Test */
 router.post('/email', function (req, res) {
   if (!req.body) {
     const error = new Error('there is no request body');
-    logger.error(error);
+    logger.error(`${getLogPrefix(req.sessionID)} ${error}`);
     errorHandler.perform(res, error, httpStatusCodes.BAD_REQUEST);
   }
 
@@ -18,7 +23,7 @@ router.post('/email', function (req, res) {
       mailSender
         .send(req.body.recipient, req.body.subject, req.body.text)
         .then(() => {
-          logger.info(req.body);
+          logger.info(`${getLogPrefix(req.sessionID)} - email processing successful !`);
           res.status(httpStatusCodes.OK).end('email envoyé');
         })
         .catch((err) => {
@@ -32,7 +37,7 @@ router.post('/email', function (req, res) {
 router.post('/cr-member', function (req, res, next) {
   if (!req.body) {
     const error = new Error('there is no request body');
-    logger.error(error);
+    logger.error(`${getLogPrefix(req.sessionID)} ${error}`);
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -44,7 +49,7 @@ router.post('/cr-member', function (req, res, next) {
 router.post('/gt-member', function (req, res, next) {
   if (!req.body) {
     const error = new Error('there is no request body');
-    logger.error(error);
+    logger.error(`${getLogPrefix(req.sessionID)} ${error}`);
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -56,7 +61,7 @@ router.post('/gt-member', function (req, res, next) {
 router.get('/members', function (req, res, next) {
   if (!req.body) {
     const error = new Error('there is no request body');
-    logger.error(error);
+    logger.error(`${getLogPrefix(req.sessionID)} ${error}`);
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
     });
@@ -67,7 +72,7 @@ router.get('/members', function (req, res, next) {
 
 router.post('/connect', function (req, res, next) {
   if (!req.body) {
-    logger.error(error);
+    logger.error(`${getLogPrefix(req.sessionID)} ${error}`);
     const error = new Error('there is no request params');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,
@@ -78,7 +83,7 @@ router.post('/connect', function (req, res, next) {
 
 router.post('/ud-member', function (req, res, next) {
   if (!req.body ) {
-    logger.error(error);
+    logger.error(`${getLogPrefix(req.sessionID)} ${error}`);
     const error = new Error('there is no request body ');
     res.status(httpStatusCodes.BAD_REQUEST).json({
       error: error,

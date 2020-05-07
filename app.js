@@ -1,14 +1,16 @@
+/* eslint-disable no-undef */
 'use strict';
 require('dotenv').config();
 // const createError = require('http-errors');
 const express = require('express');
 const cors = require('cors');
-const config = require('config');
 const expressSession = require('express-session');
 const MongoStore = require('connect-mongo')(expressSession);
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const logger = require('./utils/logger');
+// eslint-disable-next-line no-undef
+const { base } = require('path').parse(__filename);
 
 const PATH_STATIC_FILES = 'dist/frontend/';
 
@@ -16,15 +18,9 @@ const app = express();
 const testRouter = require('./routes/test');
 
 app.use(cors());
-
 app.use(express.static(PATH_STATIC_FILES));
 
-const dbUrl = config.db.url;
-
-/**
- *  Middlewares
- */
-
+const dbUrl = process.env.DB_URL;
 mongoose
   .connect(dbUrl, { useUnifiedTopology: true, useNewUrlParser: true })
   .then(() => {
@@ -38,10 +34,10 @@ mongoose
 const options = {
   store: new MongoStore({
     url: dbUrl,
-    ttl: config.session.ttl,
-    collection: config.session.name,
+    ttl: process.env.SESSION_TTL,
+    collection: process.env.SESSION_NAME,
   }),
-  secret: config.session.secret,
+  secret: process.env.SESSION_SECRET,
   saveUninitialized: true,
   resave: false,
 };
@@ -51,10 +47,15 @@ app.use(expressSession(options));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+app.use((req, res, next) => {
+  logger.info(`[ID=${req.sessionID}] [${base}] [PATH=${req.originalUrl}]`);
+  next();
+
+})
+
 app.use('/test', testRouter);
 
 app.get('/*', function (req, res) {
-  // eslint-disable-next-line no-undef
   if (process.env.NODE_ENV === 'production') {
     res.sendFile('index.html', { root: PATH_STATIC_FILES });
   }

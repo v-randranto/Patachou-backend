@@ -3,14 +3,15 @@ require('dotenv').config();
 const app = require('./app');
 const debug = require('debug')('backend:server');
 const http = require('http');
-const config = require('config');
 const logger = require('./utils/logger');
+// eslint-disable-next-line no-undef
+const { base } = require('path').parse(__filename);
 /**
  * Get port from environment and store in Express.
  */
 
 // eslint-disable-next-line no-undef
-const port = normalizePort(process.env.PORT || config.port);
+const port = normalizePort(process.env.PORT || 3000);
 app.set('port', port);
 
 /**
@@ -37,9 +38,9 @@ server.on('listening', onListening);
 const ioServer = require("socket.io")(server);
 
 ioServer.on("connect", function (ioSocket) {
-  logger.info('client connected !');
+  logger.info(`[${base}/ioServer.on()] - client connected !`);
   ioSocket.on("message", function (message){
-    logger.info(message);
+    logger.console(message);
   });
 });
 

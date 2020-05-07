@@ -1,27 +1,27 @@
-
-const config = require('config');
+/* eslint-disable no-undef */
 const nodemailer = require('nodemailer');
+// eslint-disable-next-line no-undef
+const { base } = require('path').parse(__filename);
 
 const transporter = nodemailer.createTransport({
-    service: config.email.service,
+    service: process.env.EMAIL_SERVICE,
     auth: {
-      user: config.email.user,
-      pass: config.email.pass
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
     }
   });
 
   // TODO provisoire à supprimer
   // vf. Self-Signed Certificate in Chain Issues on Node.js
-// eslint-disable-next-line no-undef
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 let mailSender = function () {
 }
 
 mailSender.prototype.send = async function (recipient, subject, text) {
-
+logger.info(`[${base}/mailSender.send()] - ${recipient}, ${subject}`);
     let mailOptions = {
-        from: config.email.from,
+        from: process.env.EMAIL_FROM,
         to: recipient,
         subject: subject,
         text: text

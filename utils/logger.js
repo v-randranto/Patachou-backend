@@ -1,44 +1,55 @@
 'use strict';
 const { createLogger, format, transports } = require('winston');
-// const appRoot = require('app-root-path');
+const path = require('path');
+// eslint-disable-next-line no-undef
+const env = process.env.NODE_ENV || 'development';
+
+const logDir = `log`;
+const fileNameFormat = `qdo-qualif_%DATE%`;
+const logFilename = path.join(logDir, `${fileNameFormat}.log`);
+const logErrorFilename = path.join(logDir, `${fileNameFormat}_error.log`);
+
+const logFormat = (info) => `[${info.timestamp}] [${info.level}]: ${info.message}`;
+
+const options = {
+  console: {
+    level: 'debug',
+    format: format.combine(
+      format.colorize(),
+      format.printf(logFormat)
+    )
+  },
+  
+  file: {
+    level: 'info',
+    filename: logFilename,
+    datePattern: 'YYYY-MM-DD',
+    format: format.printf(logFormat)
+  },
+  
+  errorFile: {
+    level: 'error',
+    filename: logErrorFilename,
+    datePattern: 'YYYY-MM-DD',
+    format: format.printf(logFormat)
+  }
+
+}
+
 
 const logger = createLogger({
-  level: 'debug',
   format: format.combine(
-    format.colorize(),
     format.timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss'
-    }),
-    format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+      format: 'YYYY-MM-DD HH:mm:ss.SSS'
+    })
   ),
-  transports: [new transports.Console()]
+  transports: [
+    new transports.File(options.file),
+    new transports.File(options.errorFile)
+  ]
 });
-
-// const options = {
-//     file: {
-//       level: 'info',
-//       // eslint-disable-next-line no-undef
-//       filename: `${appRoot}/logs/app.log`,
-//       handleExceptions: true,
-//       json: true,
-//       maxsize: 5242880, // 5MB
-//       maxFiles: 5,
-//       colorize: false,
-//     },
-//     console: {
-//       level: 'debug',
-//       handleExceptions: true,
-//       json: false,
-//       colorize: true,
-//     },
-//    };
-
-//    const logger = createLogger({
-//     transports: [
-//       new transports.File(options.file),
-//       new transports.Console(options.console)
-//     ],
-//     exitOnError: false, // do not exit on handled exceptions
-//    });
+if (env === 'development') {
+logger.add(new transports.Console(options.console));
+}
 
 module.exports = logger;
