@@ -2,6 +2,7 @@
 const nodemailer = require('nodemailer');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
+const logger = require('./logger');
 
 const transporter = nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE,

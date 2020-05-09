@@ -3,6 +3,7 @@
 require('dotenv').config();
 // const createError = require('http-errors');
 const express = require('express');
+const helmet = require('helmet');
 const cors = require('cors');
 const expressSession = require('express-session');
 const MongoStore = require('connect-mongo')(expressSession);
@@ -18,6 +19,8 @@ const app = express();
 const testRouter = require('./routes/test');
 
 app.use(cors());
+// TODO revoir l'utilisateion d'helmet
+app.use(helmet());
 app.use(express.static(PATH_STATIC_FILES));
 
 const dbUrl = process.env.DB_URL;
@@ -40,6 +43,11 @@ const options = {
   secret: process.env.SESSION_SECRET,
   saveUninitialized: true,
   resave: false,
+  cookie: {
+    httpOnly: true,
+    secure: true, 
+    // maxAge: process.env.COOKIE_MAXAGE // TODO à rétablir qd plus besoin de postman
+  }
 };
 
 app.use(expressSession(options));

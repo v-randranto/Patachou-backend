@@ -1,7 +1,7 @@
 const express = require('express');
 const mailSender = new (require('../utils/email'))();
 const errorHandler = require('../utils/errorHandler');
-const httpStatusCodes = require('../constants/httpStatusCodes');
+const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const router = express.Router();
 const test = require('../controllers/test');
 const logger = require('../utils/logger');

@@ -1,27 +1,21 @@
-# Framework
+# Frameworks
 
 Node/Express, MongoDB/Mongoose
 
-## Config JSON files
+## Variables d'environnement
 
-Le dossier 'config' contient les fichiers default.json et production.json qui spécifient les variables dépendantes de l'environnement.
-L'application utilise un fichier en fonction de la variable d'environnement NODE_ENV=development ou NODE_ENV=production.
+Les variables suivantes sont paramétrées dans le fichier .env :
 
-Variables contenues dans les fichiers :
+Pour l'envoi d'email:
+    EMAIL_SERVICE=""
+    EMAIL_USER=""
+    EMAIL_PASS=""
+    EMAIL_FROM=""
 
-{
-    "email": {
-        "service": "",
-        "user": "",
-        "pass": "",
-        "from": ""
-    },
-    "db": {
-        "url": ""
-    },
-    "session": {
-        "name": "",
-        "secret": "",
-        "ttl": 0
-    }
-}
+L'url de connexion à la database Mongo:
+    DB_URL=""
+
+des options de la session:
+    SESSION_NAME=""
+    SESSION_SECRET=""
+    SESSION_TTL=""

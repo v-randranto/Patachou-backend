@@ -1,6 +1,6 @@
 'use strict';
 
-const logger = require('../utils/logger');
+const logger = require('./logger');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 

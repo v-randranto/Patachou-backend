@@ -1,9 +1,9 @@
 'use strict'
 require('dotenv').config();
-const app = require('./app');
+const app = require('./src/app');
 const debug = require('debug')('backend:server');
 const http = require('http');
-const logger = require('./utils/logger');
+const logger = require('./src/utils/logger');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 /**
