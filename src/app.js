@@ -14,9 +14,11 @@ const logger = require('./utils/logger');
 const { base } = require('path').parse(__filename);
 
 const PATH_STATIC_FILES = 'dist/frontend/';
+const MEMBER_API_PATH = '/api/member';
 
 const app = express();
 const testRouter = require('./routes/test');
+const memberRouter = require('./routes/member');
 
 app.use(cors());
 // TODO revoir l'utilisateion d'helmet
@@ -62,6 +64,7 @@ app.use((req, res, next) => {
 })
 
 app.use('/test', testRouter);
+app.use(MEMBER_API_PATH, memberRouter);
 
 app.get('/*', function (req, res) {
   if (process.env.NODE_ENV === 'production') {
