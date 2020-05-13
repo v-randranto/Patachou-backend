@@ -56,7 +56,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
-  logger.info(`[ID=${req.sessionID}] [${base}] [PATH=${req.originalUrl}]`);
+  logger.info(`[${base}] [ID=${req.sessionID}] [PATH=${req.originalUrl}]`);
   next();
 
 })

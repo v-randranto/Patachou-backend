@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const getLogPrefix = (sessionId) => {
-  return `[ID=${sessionId}] [${base}]`;
+  return `[${base}] [ID=${sessionId}]`;
 }
 
 exports.addOne = (req, res) => {
