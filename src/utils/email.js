@@ -2,7 +2,7 @@
 const nodemailer = require('nodemailer');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
-const logger = require('./logger');
+const { logging } = require('../utils/loggingHandler');
 
 const transporter = nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE,
@@ -20,12 +20,13 @@ let mailSender = function () {
 }
 
 mailSender.prototype.send = async function (recipient, subject, text) {
-logger.info(`[${base}/mailSender.send()] - ${recipient}, ${subject}`);
+    logging('info', base, null, `Starting sending email to ${recipient} - ${subject}`);
     let mailOptions = {
         from: process.env.EMAIL_FROM,
         to: recipient,
         subject: subject,
-        text: text
+        text: text,
+        html: text
     };
 
     return new Promise(function (resolve, reject) {

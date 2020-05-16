@@ -3,7 +3,7 @@ require('dotenv').config();
 const app = require('./src/app');
 const debug = require('debug')('backend:server');
 const http = require('http');
-const logger = require('./src/utils/logger');
+const {logging} = require('./src/utils/loggingHandler');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 /**
@@ -12,6 +12,7 @@ const { base } = require('path').parse(__filename);
 
 // eslint-disable-next-line no-undef
 const port = normalizePort(process.env.PORT || 3000);
+const noSession = null;
 app.set('port', port);
 
 /**
@@ -27,7 +28,7 @@ const server = http.createServer(app);
 
 server.listen(port, function () {
   // eslint-disable-next-line no-undef
-  console.log(`Server ${process.env.NODE_ENV} listening on port ${port}`);
+  logging('info', base, noSession, `Server ${process.env.NODE_ENV.toUpperCase()} listening on port ${port}`);
 });
 server.on('error', onError);
 server.on('listening', onListening);
@@ -38,9 +39,9 @@ server.on('listening', onListening);
 const ioServer = require("socket.io")(server);
 
 ioServer.on("connect", function (ioSocket) {
-  logger.info(`[${base}/ioServer.on()] - client connected !`);
+  logging('info', base, noSession, `Socket.io client connected !`);
   ioSocket.on("message", function (message){
-    logger.console(message);
+    logging('info', base, noSession, `Socket.io message event `, message);
   });
 });
 
@@ -81,12 +82,12 @@ function onError(error) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      logger.error(bind + ' requires elevated privileges');
+      logging('error', base, noSession, `${bind} requires elevated privileges`);
       // eslint-disable-next-line no-undef
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      logger.error(bind + ' is already in use');
+      logging('error', base, noSession, `${bind} is already in use`);
       // eslint-disable-next-line no-undef
       process.exit(1);
       break;

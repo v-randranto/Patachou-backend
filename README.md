@@ -12,10 +12,12 @@ Pour l'envoi d'email:
     EMAIL_PASS=""
     EMAIL_FROM=""
 
-L'url de connexion à la database Mongo:
-    DB_URL=""
-
 des options de la session:
     SESSION_NAME=""
     SESSION_SECRET=""
     SESSION_TTL=""
+
+## Fichier .json de configurtion
+
+Pour la BDD mongoDB:
+    "db_url"
