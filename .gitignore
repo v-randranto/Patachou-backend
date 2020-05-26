@@ -5,8 +5,8 @@
 /out-tsc
 /data
 /log
-/config
-.env
+#/config
+#.env
 # Only exists if Bazel was run
 /bazel-out
 
