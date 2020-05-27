@@ -1,15 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
-
 const Schema = mongoose.Schema;
-
-const photoSchema = mongoose.Schema({
-  name: String, 
-  contentType: String,
-  // eslint-disable-next-line no-undef
-  content: Buffer
-});
 
 const memberSchema = mongoose.Schema({
   pseudo: { type: String, required: true },
@@ -23,7 +15,7 @@ const memberSchema = mongoose.Schema({
   sex: String,
   email: { type: String, required: true },
   presentation: String,
-  photo: photoSchema,
+  photoUrl: String,
   friends: [Schema.ObjectId],
   creationDate: { type: Date, required: true, default: Date.now },
   updatePseudo: String,

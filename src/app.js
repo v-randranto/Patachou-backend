@@ -21,6 +21,8 @@ const PROFILE_API_PATH = '/api/profile';
 const app = express();
 const connectionRouter = require('./routes/connection');
 const profileRouter = require('./routes/profile');
+app.use(bodyParser.json({limit: '1mb', extended: true}));
+app.use(bodyParser.urlencoded({limit: '1mb', extended: true}));
 
 app.use(cors());
 // TODO revoir l'utilisation d'helmet

@@ -37,14 +37,37 @@ server.on('listening', onListening);
  * Socket.io 
  */
 const ioServer = require("socket.io")(server);
+const connections = [];
+
+const getIndexOfConnection = function (socketId) {
+  for (let i = 0; connections[i]; i++) {
+      if (connections[i] === socketId) {
+          return i;
+      }
+  }
+  return -1;
+}
 
 ioServer.on("connect", function (ioSocket) {
-  logging('info', base, noSession, `Socket.io client connected !`);
+  logging('info', base, ioSocket.id, `Socket.io client connected !`);  
+  ioServer.emit('connectedMembers', connections.length);
+  ioSocket.on("connectMember", function (member){
+    logging('info', base, ioSocket.id, `${member.pseudo} is connected.`);
+    ioSocket.member = member;
+    connections.push(ioSocket.id);
+    ioServer.emit('connectedMembers', connections.length);
+  });
+  ioSocket.on("disconnectMember", function (){
+    console.log('socke member', ioSocket.member)
+    logging('info', base, ioSocket.id, ` is disconnected.`);
+    connections.splice(getIndexOfConnection(ioSocket.id), 1);
+    ioSocket.disconnect();
+    ioServer.emit('connectedMembers', connections.length);
+  });
   ioSocket.on("message", function (message){
-    logging('info', base, noSession, `Socket.io message event `, message);
+    logging('info', base, ioSocket.id, `Socket.io message event `, message);
   });
 });
-
 
 /**
  * Normalize a port into a number, string, or false.
