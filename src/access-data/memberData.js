@@ -32,7 +32,7 @@ exports.findOne = (sessionID, param ) => {
     'info',
     base,
     sessionID,
-    'Starting finding member by pseudo...', param
+    'Starting finding member param...', JSON.stringify(param)
   );
 
   return new Promise((resolve, reject ) => {
