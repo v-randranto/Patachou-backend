@@ -1,108 +1,49 @@
-'use strict'
+'use strict';
 require('dotenv').config();
 const app = require('./src/app');
 const debug = require('debug')('backend:server');
 const http = require('http');
-const {logging} = require('./src/utils/loggingHandler');
+const { logging } = require('./src/utils/loggingHandler');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
-/**
- * Get port from environment and store in Express.
- */
+
+const ent = require('ent');
+// const encode = require('ent/encode');
+// const decode = require('ent/decode');
 
 // eslint-disable-next-line no-undef
 const port = normalizePort(process.env.PORT || 3000);
 const noSession = null;
 app.set('port', port);
 
-/**
- * Create HTTP server.
- */
-
+// création du serveur http
 const server = http.createServer(app);
 
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port, function () {
-  // eslint-disable-next-line no-undef
-  logging('info', base, noSession, `Server ${process.env.NODE_ENV.toUpperCase()} listening on port ${port}`);
+server.listen(port, function () {  
+  logging('info', base, noSession,
+    // eslint-disable-next-line no-undef
+    `Server ${process.env.NODE_ENV.toUpperCase()} listening on port ${port}`
+  );
 });
 server.on('error', onError);
 server.on('listening', onListening);
 
-/**
- * Socket.io 
- */
-const ioServer = require("socket.io")(server);
-const connections = [];
-
-const getIndexOfConnection = function (socketId) {
-  for (let i = 0; connections[i]; i++) {
-      if (connections[i] === socketId) {
-          return i;
-      }
-  }
-  return -1;
-}
-
-ioServer.on("connect", function (ioSocket) {
-  logging('info', base, ioSocket.id, `Socket.io client connected !`);  
-  ioServer.emit('connectedMembers', connections.length);
-  ioSocket.on("connectMember", function (member){
-    logging('info', base, ioSocket.id, `${member.pseudo} is connected.`);
-    ioSocket.member = member;
-    connections.push(ioSocket.id);
-    ioServer.emit('connectedMembers', connections.length);
-  });
-  ioSocket.on("disconnectMember", function (){
-    console.log('socke member', ioSocket.member)
-    logging('info', base, ioSocket.id, ` is disconnected.`);
-    connections.splice(getIndexOfConnection(ioSocket.id), 1);
-    ioSocket.disconnect();
-    ioServer.emit('connectedMembers', connections.length);
-  });
-  ioSocket.on("message", function (message){
-    logging('info', base, ioSocket.id, `Socket.io message event `, message);
-  });
-});
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
+// normalisation du n° port d'écoute
 function normalizePort(val) {
   const port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
+  if (isNaN(port)) return val;
+  if (port >= 0) return port;
   return false;
 }
 
-/**
- * Event listener for HTTP server "error" event.
- */
-
+// Gestion des erreurs sur serveur http
 function onError(error) {
   if (error.syscall !== 'listen') {
     throw error;
   }
 
-  const bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+  const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
 
-  // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
       logging('error', base, noSession, `${bind} requires elevated privileges`);
@@ -122,11 +63,50 @@ function onError(error) {
 /**
  * Event listener for HTTP server "listening" event.
  */
-
+// Gestion des erreurs sur serveur http.
 function onListening() {
   const addr = server.address();
-  const bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
+  const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+/**
+ *  Partie Socket.io
+ */
+const io = require('socket.io')(server);
+const connections = [];
+
+io.on('connect', function (socket) {
+  logging('info', base, socket.id, `Socket.io client connected !`);
+  // envoyer au client le nb de members connectés
+  socket.emit('connectedMembers', connections.length);
+
+  // insérer l'id socket de l'utilisateur qui vient de se connecter dans la table connexions et renvoyer à tous les clients la mise à jour du nb de membres connectés.
+  socket.on('connectMember', function (member) {
+    logging('info', base, socket.id, `${member.pseudo} is connected.`);
+    socket.pseudo = ent.encode(member.pseudo);
+    connections.push(socket.id);
+    io.emit('connectedMembers', connections.length);
+  });
+
+  // déconnecter la socket du membre qui a été déconnecté du site
+  socket.on('disconnectMember', function () {
+    logging('info', base, socket.id, `starting disconnection`);    
+    socket.disconnect();
+  });
+
+  // retirer de la table connexions le membre déconnecté
+  socket.on('disconnect', function (reason) {
+    logging('info', base, socket.id, `disconnected, reason: `, reason);
+    const index = connections.indexOf(socket.id);
+    if (index !== -1) {
+      connections.splice(index, 1);
+      logging('info', base, socket.id, `${socket.id.pseudo} disconnected`);
+      io.emit('connectedMembers', connections.length);
+    } else {
+      logging('info', base, socket.id, `not found in connexions`);
+    }
+  });
+});
+
+

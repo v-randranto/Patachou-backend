@@ -1,6 +1,15 @@
-# Frameworks
+Plateforme backend: NodeJS
+Base de données: MongoDB Atlas
 
-Node/Express, MongoDB/Mongoose
+# Principaux Modules
+
+Express
+MongoDB/Mongoose : gestion de la DBB mongoDB
+Socket.io : implémentation du temps réel
+Dotenv : gestion des variables d'environnement
+Winston : implémentation du logging
+Jwt : implémentation de l'authentification avec jeton
+Helmet, cors
 
 ## Variables d'environnement
 
@@ -17,7 +26,5 @@ des options de la session:
     SESSION_SECRET=""
     SESSION_TTL=""
 
-## Fichier .json de configurtion
-
-Pour la BDD mongoDB:
-    "db_url"
+la DBB MongoDb
+    DB_URL=""

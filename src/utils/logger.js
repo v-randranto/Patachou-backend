@@ -3,8 +3,7 @@ const { createLogger, format, transports } = require('winston');
 require('winston-mongodb');
 const path = require('path');
 // eslint-disable-next-line no-undef
-const env = process.env.NODE_ENV || 'development';
-
+const env = process.env.NODE_ENV || 'development', dbUrl = process.env.DB_URL;
 const logDir = `log`;
 const fileNameFormat = `qdo-qualif`;
 const logFilename = path.join(logDir, `${fileNameFormat}.log`);
@@ -27,14 +26,14 @@ const options = {
 
   mongoDb: {
     level: 'info',
-    db: require('config').get('db_url'),
+    db: dbUrl,
     capped: true,
     datePattern: 'YYYY-MM-DD',
     format: format.printf(logFormat),
   },
   mongoDb_error: {
     level: 'error',
-    db: require('config').get('db_url'),
+    db: dbUrl,
     collection: 'logError',
     capped: true,
     datePattern: 'YYYY-MM-DD',

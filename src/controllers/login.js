@@ -6,7 +6,7 @@ const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const { logging } = require('../utils/loggingHandler');
 const jwt = require('jsonwebtoken');
-const memberData = require('../access-data/memberData');
+const accountData = require('../access-data/accountData');
 
 /**
  * Connexion d'un utilisateur :
@@ -15,7 +15,7 @@ const memberData = require('../access-data/memberData');
  * - génération d'un jeton d'authentification à renvoyer au client
  */
 
-exports.getMember = (req, res) => {
+exports.checkAccount = (req, res) => {
   logging(
     'info',
     base,
@@ -29,23 +29,23 @@ exports.getMember = (req, res) => {
     token: null,
     id: '',
   };
-  let foundMember;
+  let foundAccount;
   // Recherche du membre par son pseudo
-  // const param = {
-  //   pseudo: req.body.pseudo,
-  //   columns: 'password salt'
-  // }; 
+  const param = {
+    query: {pseudo: req.body.pseudo},
+    fields: 'password salt'
+  }; 
 
-  memberData
-    .findOne(req.sessionID, {pseudo: req.body.pseudo})
-    .then((member) => {
-      if (member) {
-        foundMember = member;
+  accountData
+    .findOne(req.sessionID, param)
+    .then((account) => {
+      if (account) {
+        foundAccount = account;
         logging(
           'info',
           base,
           req.sessionID,
-          `Member ${req.body.pseudo} found, starting password checking...`
+          `Account ${req.body.pseudo} found, starting password checking...`
         );
         return true;
       } else {
@@ -53,7 +53,7 @@ exports.getMember = (req, res) => {
           'info',
           base,
           req.sessionID,
-          `Member ${req.body.pseudo} not found !`
+          `Account ${req.body.pseudo} not found !`
         );
         return false;
       }
@@ -63,22 +63,22 @@ exports.getMember = (req, res) => {
       if (pseudo) {
         const passwordChecked = checkPassword(
           req.body.password,
-          foundMember.salt,
-          foundMember.password
+          foundAccount.salt,
+          foundAccount.password
         );
         if (passwordChecked) {
           logging(
             'info',
             base,
             req.sessionID,
-            `Member ${req.body.pseudo} password checked !`
+            `Account ${req.body.pseudo} password checked !`
           );
           loginStatus.auth = true;
           try {
             const token = jwt.sign(
               {
-                id: foundMember._id,
-                pseudo: foundMember.pseudo,
+                id: foundAccount._id,
+                pseudo: foundAccount.pseudo,
               },
               // eslint-disable-next-line no-undef
               process.env.TOKEN_KEY,
@@ -89,17 +89,17 @@ exports.getMember = (req, res) => {
               'info',
               base,
               req.sessionID,
-              `Member ${req.body.pseudo} token created`
+              `Account ${req.body.pseudo} token created`
             );
             loginStatus.token = token;
-            loginStatus.id = foundMember._id;
+            loginStatus.id = foundAccount._id;
             loginStatus.expiresIn = 3600;
           } catch (error) {
             logging(
               'error',
               base,
               req.sessionID,
-              `Jwt signing failed on member ${req.body.pseudo} !`
+              `Jwt signing failed on account ${req.body.pseudo} !`
             );
             loginStatus.error = true;
           }
@@ -108,7 +108,7 @@ exports.getMember = (req, res) => {
             'error',
             base,
             req.sessionID,
-            `Member ${req.body.pseudo} password mismatch !`
+            `Account ${req.body.pseudo} password mismatch !`
           );
           loginStatus.auth = false;
         }
@@ -119,7 +119,7 @@ exports.getMember = (req, res) => {
         'error',
         base,
         req.sessionID,
-        `Getting member ${req.body.pseudo} failed ! ${error}`
+        `Getting account ${req.body.pseudo} failed ! ${error}`
       );
       loginStatus.error = true;
       // res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json(loginStatus);
@@ -127,13 +127,13 @@ exports.getMember = (req, res) => {
     .finally(() => {
       if (loginStatus.error) {
         logging('debug', base, req.sessionID, 'technical error');
-        res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json(loginStatus);
+        res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
       } else if (loginStatus.auth) {
         logging('debug', base, req.sessionID, 'login authorized');
         res.status(httpStatusCodes.OK).json(loginStatus);
       } else {
         logging('debug', base, req.sessionID, 'login unauthorized');
-        res.status(httpStatusCodes.UNAUTHORIZED).json(loginStatus);
+        res.status(httpStatusCodes.UNAUTHORIZED).end();
       }
     });
 };

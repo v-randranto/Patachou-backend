@@ -3,7 +3,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const memberSchema = mongoose.Schema({
+const accountSchema = mongoose.Schema({
   pseudo: { type: String, required: true },
   password: { type: String, required: true },
   salt: { type: String, required: true },
@@ -22,4 +22,4 @@ const memberSchema = mongoose.Schema({
   updateDate: { type: Date },
 });
 
-module.exports = mongoose.model('member', memberSchema);
+module.exports = mongoose.model('account', accountSchema);

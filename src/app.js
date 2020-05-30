@@ -10,26 +10,27 @@ const MongoStore = require('connect-mongo')(expressSession);
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const jwt = require('express-jwt');
-const httpStatusCodes = require('./constants/httpStatusCodes.json');
 const { logging } = require('./utils/loggingHandler');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const PATH_STATIC_FILES = 'dist/frontend/';
 const CONNECTION_API_PATH = '/api/connection';
-const PROFILE_API_PATH = '/api/profile';
+const MEMBER_API_PATH = '/api/member';
+const connectionRouter = require('./routes/connection');
+const memberRouter = require('./routes/member');
 
 const app = express();
-const connectionRouter = require('./routes/connection');
-const profileRouter = require('./routes/profile');
+app.use(helmet());
+
 app.use(bodyParser.json({limit: '1mb', extended: true}));
 app.use(bodyParser.urlencoded({limit: '1mb', extended: true}));
 
 app.use(cors());
 // TODO revoir l'utilisation d'helmet
-app.use(helmet());
+
 app.use(express.static(PATH_STATIC_FILES));
 
-const dbUrl = require('config').get('db_url');
+const dbUrl = process.env.DB_URL;
 
 mongoose
   .connect(dbUrl, { useUnifiedTopology: true, useNewUrlParser: true })
@@ -52,7 +53,8 @@ const options = {
   cookie: {
     httpOnly: true,
     secure: true,
-    // maxAge: process.env.COOKIE_MAXAGE // TODO à rétablir qd plus besoin de postman
+    // maxAge: process.env.COOKIE_MAXAGE
+    expires: new Date(Date.now() + process.env.COOKIE_EXPIRES)
   },
 };
 
@@ -69,12 +71,12 @@ app.use((req, res, next) => {
 // middleware vérifiant la validité du token transmis par le client
 app.use(
   jwt({ secret: process.env.TOKEN_KEY})
-  .unless({path: ['/api/connection/login', '/api/connection/register']})
+  .unless({path: /\/api\/connection/i })  
   );
 
 // routes
 app.use(CONNECTION_API_PATH, connectionRouter);
-app.use(PROFILE_API_PATH, profileRouter);
+app.use(MEMBER_API_PATH, memberRouter);
 
 app.get('/*', function (req, res) {
   if (process.env.NODE_ENV === 'production') {
@@ -82,30 +84,8 @@ app.get('/*', function (req, res) {
   }
 });
 
-// Catch unauthorised errors
-app.use(function (err, req, res) {
-  if (err.name === 'UnauthorizedError') {
-    logging('error', base, req.sessionID, `jwt check : unauthorized.`);
-    res.status(httpStatusCodes.UNAUTHORIZED).json({"message" : err.name + ": " + err.message});
-  }
-  
+app.use(function (req, res) {  
+      res.end();  
 });
-
-// catch 404 and forward to error handler
-// app.use(function(req, res, next) {
-//   next(createError(404));
-// });
-
-// TODO: error handler à revoir
-// app.use(function (err, req, res) {
-//   // set locals, only providing error in development
-//   res.locals.message = err.message;
-//   res.locals.error = req.app.get('env') === 'development' ? err : {};
-//   logger.error(
-//     `${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method}`
-//   );
-//   // render the error page
-//   res.status(err.status || 500).end();
-// });
 
 module.exports = app;

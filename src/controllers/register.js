@@ -17,14 +17,18 @@ const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const { logging } = require('../utils/loggingHandler');
 const { storePix } = require('../utils/photoHandler');
-const memberData = require('../access-data/memberData');
+const accountData = require('../access-data/accountData');
+
+// eslint-disable-next-line no-undef
+const default_avatar = process.env.DEFAULT_AVATAR;
+
 let registerStatus = {
   pseudoUnavailable: false,
   save: false,
   email: false,
 };
 
-function NewMember(initObject) {
+function NewAccount(initObject) {
   this.pseudo = initObject.pseudo;
   this.firstName = initObject.firstName;
   this.lastName = initObject.lastName;
@@ -41,44 +45,64 @@ const textEmail = function (pseudo) {
   return `<html><body><p>Bonjour ${pseudo},<br>${process.env.EMAIL_TEXT}</body></html>`;
 };
 
-exports.addMember = async (req, res) => {
-  logging('info', base, req.sessionID, 'Starting registering new member...');
-  const bodyLog = new NewMember(req.body.member);
+exports.addAccount = async (req, res) => {
+  logging('info', base, req.sessionID, 'Starting registering new account...');
+  const bodyLog = new NewAccount(req.body.member);
   bodyLog.password = '***';
   bodyLog.salt = '***';
 
-  logging('info', base, req.sessionID, 'Starting checking pseudo availability...',
+  logging(
+    'info',
+    base,
+    req.sessionID,
+    'Starting checking pseudo availability...',
     JSON.stringify(bodyLog)
   );
-  const newMember = new NewMember(req.body.member);
+  const newAccount = new NewAccount(req.body.member);
+  const param = {
+    query: { pseudo: newAccount.pseudo },
+    fields: 'pseudo',
+  };
 
   /*-----------------------------------------------------------------------------*
    * Vérification de la disponibilité du pseudonyme
    *-----------------------------------------------------------------------------*/
-  await memberData
-    .findOne(req.sessionID, { pseudo: newMember.pseudo })
-    .then((member) => {
-      if (member) {
-        logging('info', base, req.sessionID, `Pseudo ${newMember.pseudo} is already in use !`
+  await accountData
+    .findOne(req.sessionID, param)
+    .then((account) => {
+      if (account) {
+        logging(
+          'info',
+          base,
+          req.sessionID,
+          `Pseudo ${newAccount.pseudo} is already in use !`
         );
         registerStatus.pseudoUnavailable = true;
         // res.status(httpStatusCodes.OK).json(registerStatus);
         return;
       } else {
-        logging('info', base, req.sessionID, `Pseudo ${newMember.pseudo} is available`
+        logging(
+          'info',
+          base,
+          req.sessionID,
+          `Pseudo ${newAccount.pseudo} is available`
         );
-      
       }
-    }).catch((error) => {
-      logging('error', base, req.sessionID, `Checking pseudo has failed ! ${error}`
+    })
+    .catch((error) => {
+      logging(
+        'error',
+        base,
+        req.sessionID,
+        `Checking pseudo has failed ! ${error}`
       );
       throw error;
     });
 
-    if (registerStatus.pseudoUnavailable) {
-      res.status(httpStatusCodes.OK).json(registerStatus);
-      return;
-    }
+  if (registerStatus.pseudoUnavailable) {
+    res.status(httpStatusCodes.OK).json(registerStatus);
+    return;
+  }
   /*-------------------------------------------------------------------------*
    * Chiffrage du mot de passe
    *-------------------------------------------------------------------------*/
@@ -86,11 +110,15 @@ exports.addMember = async (req, res) => {
     return new Promise((resolve, reject) => {
       // hachage avec sel du mot de passe
       try {
-        logging('info', base, req.sessionID, `Let's do some hashin' and saltin'...`
+        logging(
+          'info',
+          base,
+          req.sessionID,
+          `Let's do some hashin' and saltin'...`
         );
-        const { hash, salt } = cipher.getSaltHash(newMember.password);
-        newMember.password = hash;
-        newMember.salt = salt;
+        const { hash, salt } = cipher.getSaltHash(newAccount.password);
+        newAccount.password = hash;
+        newAccount.salt = salt;
         logging('info', base, req.sessionID, `Successful hashin' and saltin'!`);
         resolve(true);
       } catch (error) {
@@ -106,40 +134,56 @@ exports.addMember = async (req, res) => {
   })();
 
   /*-----------------------------------------------------------------------------*
-   * stockage de la photo 
-   *----------------------------------------------------------------------------*/  
+   * stockage de la photo
+   *----------------------------------------------------------------------------*/
+
   await (function () {
     return new Promise((resolve, reject) => {
       if (req.body.photo) {
-        const memberPhoto = req.body.photo;
-        logging('info', base, req.sessionID, `${newMember.pseudo} has a nice picture ${memberPhoto.name}.` );        
-        storePix(req.sessionID, memberPhoto.content)
-        .then((result) => {
-          newMember.photoUrl = result.secure_url;
-          resolve(true);
-        })
-        .catch((error) => {
-          reject(error);
-        });          
+        const accountPhoto = req.body.photo;
+        logging(
+          'info',
+          base,
+          req.sessionID,
+          `${newAccount.pseudo} has a nice picture ${accountPhoto.name}.`
+        );
+        storePix(req.sessionID, accountPhoto.content)
+          .then((result) => {
+            newAccount.photoUrl = result.secure_url;
+            resolve(true);
+          })
+          .catch((error) => {
+            reject(error);
+          });
       } else {
-        logging( 'info', base, req.sessionID, `${newMember.pseudo} has no picture.`); 
-        resolve(true);       
-      }        
+        logging(
+          'info',
+          base,
+          req.sessionID,
+          `${newAccount.pseudo} has no picture.`
+        );
+        newAccount.photoUrl = default_avatar;
+        resolve(true);
+      }
     });
   })();
 
   /*-----------------------------------------------------------------------------*
    * Enregistrement en base du nouveau membre
    *----------------------------------------------------------------------------*/
-  await memberData
-    .addOne(req.sessionID, newMember)
+  await accountData
+    .addOne(req.sessionID, newAccount)
     .then(() => {
-      logging('info', base, req.sessionID, 'Adding member is successful !');
+      logging('info', base, req.sessionID, 'Adding account is successful !');
       registerStatus.save = true;
       return;
     })
     .catch((error) => {
-      logging('error', base, req.sessionID, `Adding member has failed ! ${error}`
+      logging(
+        'error',
+        base,
+        req.sessionID,
+        `Adding account has failed ! ${error}`
       );
       throw error;
     });
@@ -150,10 +194,10 @@ exports.addMember = async (req, res) => {
   await mailSender
     // eslint-disable-next-line no-undef
     .send(
-      newMember.email,
+      newAccount.email,
       // eslint-disable-next-line no-undef
       process.env.EMAIL_SUBJECT,
-      textEmail(newMember.pseudo)
+      textEmail(newAccount.pseudo)
     )
     .then(() => {
       logging('info', base, req.sessionID, ' Email processing successfull !');
@@ -162,17 +206,27 @@ exports.addMember = async (req, res) => {
     })
     .catch((error) => {
       // une erreur sur le traitement email n'est pas propagée
-      logging('error', base, req.sessionID, `Email processing has failed ! ${error}`
+      logging(
+        'error',
+        base,
+        req.sessionID,
+        `Email processing has failed ! ${error}`
       );
     });
 
   /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
-  logging('info', base, req.sessionID, `Final registering status`, JSON.stringify(registerStatus));
+  logging(
+    'info',
+    base,
+    req.sessionID,
+    `Final registering status`,
+    JSON.stringify(registerStatus)
+  );
   if (registerStatus.save) {
     res.status(httpStatusCodes.CREATED).json(registerStatus);
   } else {
-    res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).send();
+    res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
   }
 };

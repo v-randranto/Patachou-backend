@@ -6,7 +6,7 @@
 /data
 /log
 #/config
-#.env
+.env
 # Only exists if Bazel was run
 /bazel-out
 
