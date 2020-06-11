@@ -7,7 +7,6 @@
  * - chiffrement de son mot de passe
  * - enregistrement des données en base
  * - envoi d'un email de confirmation à l'adresse fournie
- * TODO que faire quand l'email est KO? il faudrait demander à l'utilisateur de vérifier et modifier son email
  *
  ****************************************************************************************/
 const cipher = require('../utils/cipher');
@@ -42,7 +41,7 @@ function NewAccount(initObject) {
 
 const textEmail = function (pseudo) {
   // eslint-disable-next-line no-undef
-  return `<html><body><p>Bonjour ${pseudo},<br>${process.env.EMAIL_TEXT}</body></html>`;
+  return `<html><body><p>Bonjour ${pseudo},<br>${process.env.EMAIL_REGISTER_TEXT}</body></html>`;
 };
 
 exports.addAccount = async (req, res) => {
@@ -196,7 +195,7 @@ exports.addAccount = async (req, res) => {
     .send(
       newAccount.email,
       // eslint-disable-next-line no-undef
-      process.env.EMAIL_SUBJECT,
+      process.env.EMAIL_REGISTER_SUBJECT,
       textEmail(newAccount.pseudo)
     )
     .then(() => {

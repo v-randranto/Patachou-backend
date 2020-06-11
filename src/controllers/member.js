@@ -1,5 +1,12 @@
 'use strict';
 
+/**************************************************************************************
+ *
+ * Gestion du compte d'un membre:
+ * - récupération des données du compte à partir de son id
+ * - récupération de plusieurs comptes
+ *
+ ****************************************************************************************/
 const mongoose = require('mongoose');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
@@ -8,13 +15,7 @@ const { logging } = require('../utils/loggingHandler');
 const accountData = require('../access-data/accountData');
 
 exports.getAccount = (req, res) => {
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    'Starting getting account by Id',
-    req.body.id
-  );
+  logging('info', base, req.sessionID, 'Starting getting account by Id', req.body.id);
   // Recherche du membre par son id
   const param = {
     query: { _id: mongoose.mongo.ObjectID(req.body.id) },
@@ -24,40 +25,21 @@ exports.getAccount = (req, res) => {
     .findOne(req.sessionID, param)
     .then((account) => {
       if (account) {
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `Account with id ${req.body.id} found !`
-        );
+        logging('info', base, req.sessionID, `Account with id ${req.body.id} found !`);
       } else {
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `Account with id ${req.body.id} not found !`
-        );
+        logging('info', base, req.sessionID, `Account with id ${req.body.id} not found !`);
       }
       res.status(httpStatusCodes.OK).json(account);
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Getting account with id ${req.body.id} failed ! ${error}`
-      );
+      logging('error', base, req.sessionID, 
+      `Getting account with id ${req.body.id} failed ! ${error}`);
       res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
     });
 };
 
 exports.getAccounts = (req, res) => {
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    `Starting getting accounts with ${JSON.stringify(req.body)}`
-  );
+  logging('info', base, req.sessionID, `Starting getting accounts with ${JSON.stringify(req.body)}`);
   const value = {
     $regex: req.body.term,
     $options: 'i',
@@ -79,13 +61,7 @@ exports.getAccounts = (req, res) => {
       res.status(httpStatusCodes.OK).json(accounts);
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Getting accounts with query ${param} failed ! `,
-        JSON.stringify(error)
-      );
+      logging('error', base, req.sessionID, `Getting accounts with query ${param} failed ! `, JSON.stringify(error));
       res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
     });
 };

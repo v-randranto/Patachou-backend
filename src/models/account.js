@@ -1,7 +1,6 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
 const accountSchema = mongoose.Schema({
   pseudo: { type: String, required: true },
@@ -9,17 +8,15 @@ const accountSchema = mongoose.Schema({
   salt: { type: String, required: true },
   pwdExpiringDate: { type: Date, default: '01/01/2100' },
   isAdmin: { type: Boolean, required: true, default: false },
-  lastName: String,
-  firstName: String,
+  lastName: { type: String, required: true },
+  firstName: { type: String, required: true },
   birthDate: Date,
   sex: String,
   email: { type: String, required: true },
-  presentation: String,
-  photoUrl: String,
-  friends: [Schema.ObjectId],
+  presentation: { type: String, required: true },
+  photoUrl: { type: String, required: true },
   creationDate: { type: Date, required: true, default: Date.now },
-  updatePseudo: String,
-  updateDate: { type: Date },
+  modificationDate: { type: Date, required: true, default: Date.now }
 });
 
-module.exports = mongoose.model('account', accountSchema);
+module.exports = mongoose.model('Account', accountSchema);

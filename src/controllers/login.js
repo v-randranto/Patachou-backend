@@ -8,21 +8,17 @@ const { logging } = require('../utils/loggingHandler');
 const jwt = require('jsonwebtoken');
 const accountData = require('../access-data/accountData');
 
-/**
+/****************************************************************************************
+ * 
  * Connexion d'un utilisateur :
  * - recherche en base de l'utilisateur
  * - vérification de son mot de passe
  * - génération d'un jeton d'authentification à renvoyer au client
- */
+ * 
+ ****************************************************************************************/
 
 exports.checkAccount = (req, res) => {
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    'Starting login authentication...',
-    req.body.pseudo
-  );
+  logging('info', base, req.sessionID, 'Starting login authentication...');
   const loginStatus = {
     error: false,
     auth: false,
@@ -41,20 +37,10 @@ exports.checkAccount = (req, res) => {
     .then((account) => {
       if (account) {
         foundAccount = account;
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `Account ${req.body.pseudo} found, starting password checking...`
-        );
+        logging('info', base, req.sessionID, `Account ${req.body.pseudo} found, starting password checking...`);
         return true;
       } else {
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `Account ${req.body.pseudo} not found !`
-        );
+        logging('info', base, req.sessionID, `Account ${req.body.pseudo} not found !`);
         return false;
       }
     })
@@ -67,11 +53,7 @@ exports.checkAccount = (req, res) => {
           foundAccount.password
         );
         if (passwordChecked) {
-          logging(
-            'info',
-            base,
-            req.sessionID,
-            `Account ${req.body.pseudo} password checked !`
+          logging('info', base, req.sessionID, `Account ${req.body.pseudo} password checked !`
           );
           loginStatus.auth = true;
           try {
@@ -85,41 +67,22 @@ exports.checkAccount = (req, res) => {
               { expiresIn: '1h' },
               { algorithm: 'HS256' }
             );
-            logging(
-              'info',
-              base,
-              req.sessionID,
-              `Account ${req.body.pseudo} token created`
-            );
+            logging('info', base, req.sessionID, `Account ${req.body.pseudo} token created`);
             loginStatus.token = token;
             loginStatus.id = foundAccount._id;
             loginStatus.expiresIn = 3600;
           } catch (error) {
-            logging(
-              'error',
-              base,
-              req.sessionID,
-              `Jwt signing failed on account ${req.body.pseudo} !`
-            );
+            logging('error', base, req.sessionID, `Jwt signing failed on account ${req.body.pseudo} !`);
             loginStatus.error = true;
           }
         } else {
-          logging(
-            'error',
-            base,
-            req.sessionID,
-            `Account ${req.body.pseudo} password mismatch !`
-          );
+          logging('error', base, req.sessionID, `Account ${req.body.pseudo} password mismatch !`);
           loginStatus.auth = false;
         }
       }
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Getting account ${req.body.pseudo} failed ! ${error}`
+      logging('error', base, req.sessionID, `Getting account ${req.body.pseudo} failed ! ${error}`
       );
       loginStatus.error = true;
       // res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json(loginStatus);

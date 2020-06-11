@@ -16,8 +16,10 @@ const { base } = require('path').parse(__filename);
 const PATH_STATIC_FILES = 'dist/frontend/';
 const CONNECTION_API_PATH = '/api/connection';
 const MEMBER_API_PATH = '/api/member';
+const RELATION_API_PATH = '/api/relation';
 const connectionRouter = require('./routes/connection');
 const memberRouter = require('./routes/member');
+const relationRouter = require('./routes/relation');
 
 const app = express();
 app.use(helmet());
@@ -69,14 +71,15 @@ app.use((req, res, next) => {
 });
 
 // middleware vérifiant la validité du token transmis par le client
-app.use(
-  jwt({ secret: process.env.TOKEN_KEY})
-  .unless({path: /\/api\/connection/i })  
-  );
+// app.use(
+//   jwt({ secret: process.env.TOKEN_KEY})
+//   .unless({path: /\/api\/connection/i })  
+//   );
 
 // routes
 app.use(CONNECTION_API_PATH, connectionRouter);
 app.use(MEMBER_API_PATH, memberRouter);
+app.use(RELATION_API_PATH, relationRouter);
 
 app.get('/*', function (req, res) {
   if (process.env.NODE_ENV === 'production') {
@@ -85,6 +88,7 @@ app.get('/*', function (req, res) {
 });
 
 app.use(function (req, res) {  
+  console.log('oups')
       res.end();  
 });
 
