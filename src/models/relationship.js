@@ -5,7 +5,6 @@ const Schema = mongoose.Schema;
 
 const relationshipSchema = mongoose.Schema({
   category: { type: String, required: true },
-  friend: { type: Schema.Types.ObjectId, ref: 'Account'},
   requester: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
   receiver: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
   recommander: { type: Schema.Types.ObjectId, ref: 'Account' },

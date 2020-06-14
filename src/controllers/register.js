@@ -50,11 +50,7 @@ exports.addAccount = async (req, res) => {
   bodyLog.password = '***';
   bodyLog.salt = '***';
 
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    'Starting checking pseudo availability...',
+  logging('info', base, req.sessionID, 'Starting checking pseudo availability...',
     JSON.stringify(bodyLog)
   );
   const newAccount = new NewAccount(req.body.member);
@@ -70,30 +66,17 @@ exports.addAccount = async (req, res) => {
     .findOne(req.sessionID, param)
     .then((account) => {
       if (account) {
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `Pseudo ${newAccount.pseudo} is already in use !`
+        logging('info', base, req.sessionID, `Pseudo ${newAccount.pseudo} is already in use !`
         );
         registerStatus.pseudoUnavailable = true;
-        // res.status(httpStatusCodes.OK).json(registerStatus);
         return;
       } else {
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `Pseudo ${newAccount.pseudo} is available`
+        logging('info', base, req.sessionID, `Pseudo ${newAccount.pseudo} is available`
         );
       }
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Checking pseudo has failed ! ${error}`
+      logging('error', base, req.sessionID, `Checking pseudo has failed ! ${error}`
       );
       throw error;
     });
@@ -102,6 +85,7 @@ exports.addAccount = async (req, res) => {
     res.status(httpStatusCodes.OK).json(registerStatus);
     return;
   }
+  
   /*-------------------------------------------------------------------------*
    * Chiffrage du mot de passe
    *-------------------------------------------------------------------------*/
@@ -109,24 +93,14 @@ exports.addAccount = async (req, res) => {
     return new Promise((resolve, reject) => {
       // hachage avec sel du mot de passe
       try {
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `Let's do some hashin' and saltin'...`
-        );
+        logging('info', base, req.sessionID, `Let's do some hashin' and saltin'...`);
         const { hash, salt } = cipher.getSaltHash(newAccount.password);
         newAccount.password = hash;
         newAccount.salt = salt;
         logging('info', base, req.sessionID, `Successful hashin' and saltin'!`);
         resolve(true);
       } catch (error) {
-        logging(
-          'error',
-          base,
-          req.sessionID,
-          `The hashin' and saltin' didn't go down well!`
-        );
+        logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`);
         reject(error);
       }
     });
@@ -140,11 +114,7 @@ exports.addAccount = async (req, res) => {
     return new Promise((resolve, reject) => {
       if (req.body.photo) {
         const accountPhoto = req.body.photo;
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `${newAccount.pseudo} has a nice picture ${accountPhoto.name}.`
+        logging('info', base, req.sessionID,  `${newAccount.pseudo} has a nice picture ${accountPhoto.name}.`
         );
         storePix(req.sessionID, accountPhoto.content)
           .then((result) => {
@@ -155,12 +125,7 @@ exports.addAccount = async (req, res) => {
             reject(error);
           });
       } else {
-        logging(
-          'info',
-          base,
-          req.sessionID,
-          `${newAccount.pseudo} has no picture.`
-        );
+        logging('info', base, req.sessionID, `${newAccount.pseudo} has no picture.` );
         newAccount.photoUrl = default_avatar;
         resolve(true);
       }
@@ -178,12 +143,7 @@ exports.addAccount = async (req, res) => {
       return;
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Adding account has failed ! ${error}`
-      );
+      logging('error', base, req.sessionID, `Adding account has failed ! ${error}`);
       throw error;
     });
 
@@ -204,24 +164,14 @@ exports.addAccount = async (req, res) => {
       return;
     })
     .catch((error) => {
-      // une erreur sur le traitement email n'est pas propagée
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Email processing has failed ! ${error}`
-      );
+      // une erreur sur le traitement email n'est pas bloquante
+      logging('error', base, req.sessionID, `Email processing has failed ! ${error}`);
     });
 
   /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    `Final registering status`,
-    JSON.stringify(registerStatus)
+  logging('info', base, req.sessionID, `Final registering status`, JSON.stringify(registerStatus)
   );
   if (registerStatus.save) {
     res.status(httpStatusCodes.CREATED).json(registerStatus);

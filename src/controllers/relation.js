@@ -3,10 +3,11 @@
 /***************************************************************************************
  *
  * Gestion des relations d'un membre:
- * - Prise en compte d'une demande d'ajout d'ami
- * - Rejet d'une demande d'ajout d'ami
- * - Confirmation d'une demande d'ajout d'ami
- * - Termination d'une relation confirmée
+ * - Prise en compte d'une nouvelle relation (add)
+ * - Consulation des relations (getAll)
+ * - Rejet d'une demande d'ajout d'ami (update)
+ * - Confirmation d'une demande d'ajout d'ami (update)
+ * - Termination d'une relation confirmée (update)
  *
  ****************************************************************************************/
 const mongoose = require('mongoose');
@@ -16,6 +17,7 @@ const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const { logging } = require('../utils/loggingHandler');
 const mailSender = new (require('../utils/email'))();
 const relationData = require('../access-data/relationData');
+const Relation = require('../models/relationship');
 
 const textEmail = function (requesterPseudo, receiverPseudo) {
   // eslint-disable-next-line no-undef
@@ -42,16 +44,52 @@ exports.add = async (req, res) => {
     alreadyRelated: false,
     save: false,    
     email: false,
-  };
+  };  
+
   // Données à mettre en base
   const relation = req.body.relation;
+  relation.requester = mongoose.mongo.ObjectId(relation.requester);
+  relation.receiver = mongoose.mongo.ObjectId(relation.receiver);
   // Données complémentaires pour l'envoi d'email
   const complementaryData = req.body.complementaryData;
 
   /*-----------------------------------------------------------------------------*
    * Vérification de la non existence d'une relation
    *----------------------------------------------------------------------------*/
-  // TODO
+  // param de la requête pour vérifier l'absence d'une relation
+
+  const param = {
+    // query: {      
+    //    $and: [{ requester: requesterId }, { receiver: receiverId }] 
+    // },
+    query: { 
+      $or: [ 
+      { $and: [{ requester: relation.requester }, { receiver: relation.receiver }] }, 
+      { $and: [{ requester: relation.receiver }, { receiver: relation.requester }] } 
+    ]},
+    fields: '_id'
+  };
+
+  await relationData
+    .findOne(req.sessionID, param)
+    .then((relation) => {
+      if (relation) {
+        logging('info', base, req.sessionID, `Already in relation ${relation._id}`);
+        requestStatus.alreadyRelated = true;
+        return;
+      } else {
+        logging('info', base, req.sessionID, `No relation found`);
+      }
+    })
+    .catch((error) => {
+      logging('error', base, req.sessionID, `Checking absence of relation has failed ! ${error}`);
+      throw error;
+    });
+
+  if (requestStatus.alreadyRelated) {
+    res.status(httpStatusCodes.OK).json(requestStatus);
+    return;
+  }
   /*-----------------------------------------------------------------------------*
    * Enregistrement en base de la demande
    *----------------------------------------------------------------------------*/
@@ -63,12 +101,7 @@ exports.add = async (req, res) => {
       return;
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Adding relation has failed ! ${error}`
-      );
+      logging('error', base, req.sessionID, `Adding relation has failed ! ${error}`);
       throw error;
     });
 
@@ -93,24 +126,13 @@ exports.add = async (req, res) => {
     })
     .catch((error) => {
       // une erreur sur le traitement email n'est pas propagée
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Email processing has failed ! ${error}`
-      );
+      logging('error', base, req.sessionID, `Email processing has failed ! ${error}`);
     });
 
   /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    `Final registering status`,
-    JSON.stringify(requestStatus)
-  );
+  logging('info', base, req.sessionID, `Final status`, JSON.stringify(requestStatus));
   if (requestStatus.save) {
     res.status(httpStatusCodes.CREATED).json(requestStatus);
   } else {
@@ -122,12 +144,7 @@ exports.add = async (req, res) => {
  *=======================================================================================*/
 
 exports.getAll = async (req, res) => {
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    `Starting getting sent requests for id ${JSON.stringify(req.body)}`
-  );
+  logging('info', base, req.sessionID, `Starting getting sent requests for id ${JSON.stringify(req.body)}`);
 
   const _id = mongoose.mongo.ObjectID(req.body.id);
   const param = { 
@@ -135,28 +152,17 @@ exports.getAll = async (req, res) => {
       $or: [{ requester: _id }, { receiver: _id }],
       status: { $in: ['PENDING', 'CONFIRMED'] },
     },
-    relationFields: '_id requester receiver status creationDate',
     accountFields: '_id pseudo firstName lastName presentation photoUrl',
   };
 
   relationData
     .findAndPopulate(req.sessionID, param, _id)
     .then((relations) => {
-      logging(
-        'info',
-        base,
-        req.sessionID,
-        'Getting sent requests is successful !'
-      );
+      logging('info', base, req.sessionID, 'Getting sent requests is successful !');
       res.status(httpStatusCodes.OK).json(relations);
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Getting sent requests has failed ! ${error}`
-      );
+      logging('error', base, req.sessionID,  `Getting sent requests has failed ! ${error}`);
       res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
     });
 };
@@ -170,66 +176,80 @@ exports.getAll = async (req, res) => {
  *
  *=======================================================================================*/
 exports.update = async (req, res) => {
+  logging('info', base, req.sessionID, `Starting updating relation with ${JSON.stringify(req.body)}`);
   let updateStatus = {
+    badRequest: false,
     save: false,
   };
-  const param = [
-    { _id: mongoose.mongo.ObjectID(req.body.id) },
-    { status: req.body.status },
-    { modificationDate: Date.now },
-    { modificationAuthor: mongoose.mongo.ObjectID(req.body.modifier) },
-  ];
+  const param = {
+    query : { _id: req.body.id },
+    fields : { 
+      status: req.body.status,
+      modificationDate: Date.now(),
+      modificationAuthor: req.body.modificationAuthor }
+  };
 
+  let updatedRelation = new Relation();
+
+  /*-------------------------------------------------------------------------*
+   * Contrôle que le statut de la relation à modifier est compatible avec la màj
+   *-------------------------------------------------------------------------*/
   await relationData
     .findOne(req.sessionID, param)
     .then((relation) => {
-      logging(
-        'info',
-        base,
-        req.sessionID,
-        'Getting sent requests is successful !'
-      );
+      if (!relation) {
+        return;
+      }
+      switch (req.body.status) {
+        case 'CONFIRMED':
+        case 'REJECTED':
+          if (relation.status !== 'PENDING') {
+            updateStatus.badRequest = true;
+            return;
+          }
+          break;
+        case 'TERMINATED':
+          if (relation.status !== 'CONFIRMED') {
+            updateStatus.badRequest = true;
+            return;
+          }
+          break;
+        default:
+          updateStatus.badRequest = true;
+      }
+      logging('info', base, req.sessionID, 'Checking status is successful !');
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Getting sent requests has failed ! ${error}`
-      );
+      logging('error', base, req.sessionID, `Checking status has failed ! ${error}`);
+      throw error;
     });
+  
+    if (updateStatus.badRequest) {
+      res.status(httpStatusCodes.BAD_REQUEST).end();
+      return;  
+    }
 
+  /*-------------------------------------------------------------------------*
+   * Enregistrement de la màj
+   *-------------------------------------------------------------------------*/
   await relationData
     .update(req.sessionID, param)
-    .then((status) => {
-      logging(
-        'info',
-        base,
-        req.sessionID,
-        'Getting sent requests is successful !'
-      );
+    .then((relation) => {      
+      logging('info', base, req.sessionID, 'Updating relation is successful !', JSON.stringify(relation));
+      updateStatus.save = true;
+      updatedRelation = relation;
     })
     .catch((error) => {
-      logging(
-        'error',
-        base,
-        req.sessionID,
-        `Getting sent requests has failed ! ${error}`
-      );
+      logging('error', base, req.sessionID, `Updating relation has failed ! ${error}`);
     });
 
   /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    `Final registering status`,
-    JSON.stringify(updateStatus)
+  logging('info', base, req.sessionID, `Final registering status`, JSON.stringify(updateStatus)
   );
   if (updateStatus.save) {
-    res.status(httpStatusCodes.CREATED).json(updateStatus);
+    res.status(httpStatusCodes.CREATED).json(updatedRelation);
   } else {
     res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
   }

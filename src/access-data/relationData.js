@@ -12,10 +12,7 @@ const { base } = require('path').parse(__filename);
  *=======================================================================================*/
 
 exports.addOne = (sessionID, relation) => {
-  console.log('requester ', relation);
-  relation.requester = mongoose.mongo.ObjectId(relation.requester);
-  relation.receiver = mongoose.mongo.ObjectId(relation.receiver);
-  relation.friend = mongoose.mongo.ObjectId(relation.receiver);
+  
   logging('info', base, sessionID, 'Starting saving relation...', JSON.stringify(relation));
   return new Promise((resolve, reject) => {
     const newRelation = new Relation(relation);
@@ -44,7 +41,7 @@ exports.findAndPopulate = (sessionID, param) => {
 
   return new Promise((resolve, reject) => {
     Relation
-    .find(param.query, param.relationFields )
+    .find(param.query)
     .populate({
       path: 'receiver',
       match: { _id: { $ne: param.id} },
@@ -77,14 +74,15 @@ exports.findAndPopulate = (sessionID, param) => {
  *=======================================================================================*/
 
 exports.findOne = (sessionID, param) => {
-  logging('info', base, sessionID, 'Starting finding relation request...', JSON.stringify(param.query));
+  logging('info', base, sessionID, 'Starting finding relation...', JSON.stringify(param.query));
 
   return new Promise((resolve, reject) => {
     Relation.findOne(param.query, param.fields)
-      .then((account) => {
-        if (account) {
+      .then((relation) => {
+        if (relation) {
+          console.log('>findOne relation found', relation)
           logging('info', base, sessionID, `Finding relation request successfull !`);
-          resolve(account);
+          resolve(relation);
         } else {
           logging('info', base, sessionID, 'relation request not found !');
           resolve(false);
@@ -104,10 +102,10 @@ exports.findOne = (sessionID, param) => {
 exports.update = (sessionID, param) => {
   logging('info', base, sessionID, 'Starting updating relation...', JSON.stringify(param));
   return new Promise((resolve, reject) => {
-    Relation.updateOne(param)
-      .then(() => {
-        logging('info', base, sessionID, 'Updating relation successful !');
-        resolve;
+    Relation.findOneAndUpdate(param.query, param.fields, {new: true})
+      .then((relation) => {
+        logging('info', base, sessionID, 'Updating relation successful !', JSON.stringify(relation));
+        resolve(relation);
       })
       .catch((error) => {
         logging('error', base, sessionID, 'Updating relation failed !');

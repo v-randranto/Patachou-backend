@@ -47,7 +47,7 @@ exports.getAccounts = (req, res) => {
 
   const param = {
     query: { $or: [{ pseudo: value }, { firstName: value }, { lastName: value }]},
-    fields: '_id pseudo firstName lastName sex presentation photoUrl'
+    fields: '_id pseudo firstName lastName sex email presentation photoUrl'
   };
 
   accountData

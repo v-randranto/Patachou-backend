@@ -29,12 +29,7 @@ exports.addOne = (sessionID, account) => {
 };
 
 exports.findOne = (sessionID, param ) => {
-  logging(
-    'info',
-    base,
-    sessionID,
-    'Starting finding account param...', JSON.stringify(param.query)
-  );
+  logging('info', base,  sessionID, 'Starting finding account param...', JSON.stringify(param.query));
 
   return new Promise((resolve, reject ) => {
     Account.findOne(param.query, param.fields)
@@ -97,13 +92,7 @@ exports.delete = (sessionID, id) => {
 };
 
 exports.find = (sessionID, param) => {
-  logging(
-    'info',
-    base,
-    sessionID,
-    'Starting finding accounts...',
-    JSON.stringify(param.query)
-  );
+  logging('info', base, sessionID, 'Starting finding accounts...', JSON.stringify(param.query));
   return new Promise((resolve, reject) => {
     Account.find(param.query, param.fields)
     .then((accounts) => {
