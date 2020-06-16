@@ -41,6 +41,7 @@ mongoose
   })
   .catch((error) => {
     logging('error', base, null, 'MongoDB connection failed !', error);
+    res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
   });
 
 const options = {

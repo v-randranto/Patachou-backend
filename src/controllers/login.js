@@ -77,7 +77,6 @@ exports.checkAccount = (req, res) => {
               { algorithm: 'HS256' }
             );
             logging('info', base, req.sessionID, `Account ${req.body.pseudo} token created`);
-            loginStatus.jwtKO = true;
             returnData.token = token;
             foundAccount.password = '*';
             foundAccount.salt = '*';

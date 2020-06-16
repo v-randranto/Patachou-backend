@@ -21,7 +21,7 @@ const accountData = require('../access-data/accountData');
 // eslint-disable-next-line no-undef
 const default_avatar = process.env.DEFAULT_AVATAR;
 
-let registerStatus = {
+const registerStatus = {
   pseudoUnavailable: false,
   save: false,
   email: false,
@@ -73,6 +73,8 @@ exports.addAccount = async (req, res) => {
       } else {
         logging('info', base, req.sessionID, `Pseudo ${newAccount.pseudo} is available`
         );
+        registerStatus.pseudoUnavailable = false;
+
       }
     })
     .catch((error) => {
@@ -144,6 +146,7 @@ exports.addAccount = async (req, res) => {
     })
     .catch((error) => {
       logging('error', base, req.sessionID, `Adding account has failed ! ${error}`);
+      registerStatus.save = false;
       throw error;
     });
 
@@ -166,6 +169,7 @@ exports.addAccount = async (req, res) => {
     .catch((error) => {
       // une erreur sur le traitement email n'est pas bloquante
       logging('error', base, req.sessionID, `Email processing has failed ! ${error}`);
+      registerStatus.email = false;
     });
 
   /*-----------------------------------------------------------------------------*

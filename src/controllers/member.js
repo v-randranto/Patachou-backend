@@ -14,6 +14,32 @@ const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const { logging } = require('../utils/loggingHandler');
 const accountData = require('../access-data/accountData');
 
+exports.checkPseudo = (req, res) => {
+  logging('info', base, req.sessionID, `Starting getting account with pseudo ${req.body.pseudo}`);
+  // Recherche du membre par son id
+  const param = {
+    query: { pseudo: req.body.pseudo },
+    fields: '_id pseudo'
+  }
+  accountData
+    .findOne(req.sessionID, param)
+    .then((account) => {
+      let pseudoUnavailable = false;
+      if (account) {        
+        logging('info', base, req.sessionID, `Account found ! ${JSON.stringify(account)}`);
+        pseudoUnavailable = true;
+      } else {
+        logging('info', base, req.sessionID, `Account with pseudo ${req.body.pseudo} not found !`);
+      }
+      res.status(httpStatusCodes.OK).json(pseudoUnavailable);
+    })
+    .catch((error) => {
+      logging('error', base, req.sessionID, 
+      `Getting account with pseudo ${req.body.pseudo} failed ! ${error}`);
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
+    });
+};
+
 exports.getAccount = (req, res) => {
   logging('info', base, req.sessionID, 'Starting getting account by Id', req.body.id);
   // Recherche du membre par son id
@@ -38,15 +64,21 @@ exports.getAccount = (req, res) => {
     });
 };
 
-exports.getAccounts = (req, res) => {
+exports.searchAccounts = (req, res) => {
   logging('info', base, req.sessionID, `Starting getting accounts with ${JSON.stringify(req.body)}`);
   const value = {
     $regex: req.body.term,
     $options: 'i',
   };
+  const _id = mongoose.mongo.ObjectID(req.body.id);
 
   const param = {
-    query: { $or: [{ pseudo: value }, { firstName: value }, { lastName: value }]},
+    query: { 
+      $and: [
+        { _id: { $ne: _id } }, 
+        { $or: [{ pseudo: value }, { firstName: value }, { lastName: value }] }
+      ],     
+    },
     fields: '_id pseudo firstName lastName sex email presentation photoUrl'
   };
 
