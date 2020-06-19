@@ -49,18 +49,13 @@ exports.findOne = (sessionID, param ) => {
 };
 
 exports.update = (sessionID, param) => {
-  logging(
-    'info',
-    base,
-    sessionID,
-    'Starting updating account...',
-    JSON.stringify(param)
+  logging('info', base, sessionID, 'Starting updating account...', JSON.stringify(param)
   );
   return new Promise((resolve, reject) => {
-    Account.findOneAndUpdate(param)
-    .then(() => {
+    Account.findOneAndUpdate(param.query, param.fields, {new: true})
+    .then((account) => {
       logging('info', base, sessionID, 'Updating account successful !');
-      resolve;
+      resolve(account);
     })
     .catch((error) => {
       logging('error', base, sessionID, 'Updating account failed !');
@@ -70,13 +65,7 @@ exports.update = (sessionID, param) => {
 };
 
 exports.delete = (sessionID, id) => {
-  logging(
-    'info',
-    base,
-    sessionID,
-    'Starting deleting account...',
-    JSON.stringify(id)
-  );
+  logging('info', base, sessionID, 'Starting deleting account...', JSON.stringify(id));
     return new Promise((resolve, reject) => {
       Account.findOneAndDelete({ _id: mongoose.mongo.ObjectId(id) })
     .then(() => {

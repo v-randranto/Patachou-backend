@@ -10,6 +10,7 @@
  *
  ****************************************************************************************/
 const cipher = require('../utils/cipher');
+const { toTitleCase } = require('../utils/titleCase');
 const mailSender = new (require('../utils/email'))();
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
@@ -41,7 +42,7 @@ function NewAccount(initObject) {
 
 const textEmail = function (pseudo) {
   // eslint-disable-next-line no-undef
-  return `<html><body><p>Bonjour ${pseudo},<br>${process.env.EMAIL_REGISTER_TEXT}</body></html>`;
+  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br>${process.env.EMAIL_REGISTER_TEXT}</body></html>`;
 };
 
 exports.addAccount = async (req, res) => {
