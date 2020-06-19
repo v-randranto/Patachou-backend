@@ -24,6 +24,12 @@ const relationRouter = require('./routes/relation');
 const app = express();
 app.use(helmet());
 
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"]
+  }
+}))
+
 app.use(bodyParser.json({limit: '1mb', extended: true}));
 app.use(bodyParser.urlencoded({limit: '1mb', extended: true}));
 
