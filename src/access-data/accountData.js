@@ -83,9 +83,9 @@ exports.delete = (sessionID, id) => {
 exports.find = (sessionID, param) => {
   logging('info', base, sessionID, 'Starting finding accounts...', JSON.stringify(param.query));
   return new Promise((resolve, reject) => {
-    Account.find(param.query, param.fields)
+    Account.find(param.query, param.fields).sort({lastName: 1})
     .then((accounts) => {
-      if (accounts.length) {
+      if (accounts.length) {        
         logging('info', base, sessionID, `Finding accounts successful !`);
         // TODO formatter les accounts avant de les retourner
         resolve(accounts);

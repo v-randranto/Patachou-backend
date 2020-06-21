@@ -69,6 +69,33 @@ exports.findAndPopulate = (sessionID, param) => {
 
 /*=======================================================================================*
  *
+ *  Requête des relations d'un membre:
+ *
+ *=======================================================================================*/
+
+exports.find = (sessionID, param) => {
+  logging('info', base, sessionID, 'Starting finding relation param...', JSON.stringify(param) );
+
+  return new Promise((resolve, reject) => {
+    Relation
+    .find(param.query)
+    .then((relations) => {
+      if (relations) {
+        logging('info', base, sessionID, `Finding sent request successfull !`);
+        resolve(relations);
+      } else {
+        logging('info', base, sessionID, 'No sent request found !');
+        resolve(false);
+      }
+    })
+    .catch((error) => {
+      reject(error);
+    });
+  });
+};
+
+/*=======================================================================================*
+ *
  *  Requête d'une relation
  *
  *=======================================================================================*/
@@ -80,7 +107,6 @@ exports.findOne = (sessionID, param) => {
     Relation.findOne(param.query, param.fields)
       .then((relation) => {
         if (relation) {
-          console.log('>findOne relation found', relation)
           logging('info', base, sessionID, `Finding relation request successfull !`);
           resolve(relation);
         } else {

@@ -89,7 +89,6 @@ app.get('/*', function (req, res) {
 });
 
 app.use(function (req, res) {  
-  console.log('oups')
       res.end();  
 });
 

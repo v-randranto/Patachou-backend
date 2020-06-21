@@ -73,7 +73,7 @@ exports.searchAccounts = (req, res) => {
   accountData
     .find(req.sessionID, param)
     .then((accounts) => {
-      if (accounts.lentgh) {
+      if (accounts.length) {
         logging('info', base, req.sessionID, `${accounts.lentgh} Accounts found !`);
       } else {
         logging('info', base, req.sessionID, `No account !`);
@@ -94,7 +94,8 @@ exports.updateAccount = async (req, res) => {
   logging('info', base, req.sessionID, 'Starting updating account', JSON.stringify(req.body));
   const updateStatus = {
     pseudoUnavailable: false,
-    save: false
+    save: false,
+    account: null
   };
 
    // paramétrage de la requête mongo pour la mise àjour
@@ -237,6 +238,7 @@ exports.updateAccount = async (req, res) => {
       if (account) {
         logging('info', base, req.sessionID, `Account with id ${req.body.id} updated !`);
         updateStatus.save = true;
+        updateStatus.photoUrl = account.photoUrl;
       } else {
         updateStatus.save = false;
         logging('info', base, req.sessionID, `Account with id ${req.body.id} not found !`);

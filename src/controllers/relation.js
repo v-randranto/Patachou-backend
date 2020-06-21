@@ -15,13 +15,14 @@ const mongoose = require('mongoose');
 const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const { logging } = require('../utils/loggingHandler');
+const { toTitleCase } = require('../utils/titleCase');
 const mailSender = new (require('../utils/email'))();
 const relationData = require('../access-data/relationData');
 const Relation = require('../models/relationship');
 
 const textEmail = function (requesterPseudo, receiverPseudo) {
   // eslint-disable-next-line no-undef
-  return `<html><body><p>Bonjour ${requesterPseudo},<br>${process.env.EMAIL_REQUEST_TEXT} de ${receiverPseudo}</body></html>`;
+  return `<html><body><p>Bonjour ${toTitleCase(requesterPseudo)},<br>${process.env.EMAIL_REQUEST_TEXT} de ${toTitleCase(receiverPseudo)}</body></html>`;
 };
 
 /*=======================================================================================*
@@ -59,9 +60,6 @@ exports.add = async (req, res) => {
   // param de la requête pour vérifier l'absence d'une relation
 
   const param = {
-    // query: {      
-    //    $and: [{ requester: requesterId }, { receiver: receiverId }] 
-    // },
     query: { 
       $or: [ 
       { $and: [{ requester: relation.requester }, { receiver: relation.receiver }] }, 

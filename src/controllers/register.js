@@ -160,6 +160,7 @@ exports.addAccount = async (req, res) => {
       newAccount.email,
       // eslint-disable-next-line no-undef
       process.env.EMAIL_REGISTER_SUBJECT,
+      // eslint-disable-next-line no-undef
       textEmail(newAccount.pseudo)
     )
     .then(() => {
