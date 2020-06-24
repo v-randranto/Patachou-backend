@@ -13,7 +13,7 @@ const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const { logging } = require('../utils/loggingHandler');
 const accountData = require('../access-data/accountData');
-const cipher = require('../utils/cipher');
+const passwordHandler = require('../utils/passwordHandler');
 
 const { storePix } = require('../utils/photoHandler');
 
@@ -105,7 +105,7 @@ exports.updateAccount = async (req, res) => {
   }
    
   let updateAccount = {
-    modificationDate: Date.now(),
+    modificationDate: new Date(),
     modificationAuthor: req.body.modificationAuthor 
   }
 
@@ -147,7 +147,6 @@ exports.updateAccount = async (req, res) => {
           throw error;
         });
     });
-
   })();
 
   if (updateStatus.pseudoUnavailable) {
@@ -161,19 +160,20 @@ exports.updateAccount = async (req, res) => {
     return new Promise((resolve, reject) => {      
       try {
         for (let [key, value] of Object.entries(req.body)) {
-          console.log(`${key}: ${value}`);
           updateAccount[key] = value;
-        }
-        paramUpdate.fields = updateAccount;
-        console.log('updateAccount', updateAccount)
+        }   
         resolve(true);
       } catch (error) {
-        logging('error', base, req.sessionID, `consitution of updateAccount went awry :(`);
         reject(error);
       }
     });
-  })();
-
+  })()
+  .then(() => {
+    paramUpdate.fields = updateAccount;
+  })
+  .catch(error => {
+    logging('error', base, req.sessionID, `consitution of updateAccount went awry :(`, JSON.stringify(error));
+  });
  
    
   /*-------------------------------------------------------------------------*
@@ -188,17 +188,22 @@ exports.updateAccount = async (req, res) => {
       // hachage avec sel du mot de passe
       try {
         logging('info', base, req.sessionID, `Let's do some hashin' and saltin'...`);
-        const { hash, salt } = cipher.getSaltHash(req.body.password);
-        updateAccount.password = hash;
-        updateAccount.salt = salt;
+        const { hash, salt } = passwordHandler.getSaltHash(req.body.password);        
         logging('info', base, req.sessionID, `Successful hashin' and saltin'!`);
-        resolve(true);
-      } catch (error) {
-        logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`);
+        resolve({ hash, salt });
+      } catch (error) {   
         reject(error);
       }
     });
-  })();
+  })()
+  .then(res => {
+    updateAccount.password = res.hash;
+    updateAccount.salt = res.salt;
+    updateAccount.pwdExpiringDate = new Date('01/01/2100');
+  })
+  .catch(error => {
+    logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`, JSON.stringify(error))
+  });
 
   
   /*-----------------------------------------------------------------------------*
@@ -209,23 +214,27 @@ exports.updateAccount = async (req, res) => {
     return new Promise((resolve, reject) => {
       if (req.body.photo) {
         const accountPhoto = req.body.photo;
-        logging('info', base, req.sessionID,  `${updateAccount.pseudo} has a nice picture ${accountPhoto.name}.`
+        logging('info', base, req.sessionID, `${updateAccount.pseudo} has a nice picture ${accountPhoto.name}.`
         );
         storePix(req.sessionID, accountPhoto.content)
           .then((result) => {
-            updateAccount.photoUrl = result.secure_url;
-            resolve(true);
+            resolve(result.secure_url);
           })
           .catch((error) => {
             reject(error);
           });
       } else {
         logging('info', base, req.sessionID, `${updateAccount.pseudo} has no picture.` );
-        updateAccount.photoUrl = default_avatar;
-        resolve(true);
+        resolve(default_avatar);
       }
     });
-  })();
+  })()
+  .then(res => {
+    updateAccount.photoUrl = res;
+  })
+  .catch(error => {
+    logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`, JSON.stringify(error))
+  });
 
 
   /*-------------------------------------------------------------------------*
@@ -251,7 +260,8 @@ exports.updateAccount = async (req, res) => {
       throw error;
     });
 
-    /*-----------------------------------------------------------------------------*
+
+  /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
   logging('info', base, req.sessionID, `Final update status`, JSON.stringify(updateStatus)

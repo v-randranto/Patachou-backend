@@ -9,7 +9,7 @@
  * - envoi d'un email de confirmation à l'adresse fournie
  *
  ****************************************************************************************/
-const cipher = require('../utils/cipher');
+const passwordHandler = require('../utils/passwordHandler');
 const { toTitleCase } = require('../utils/titleCase');
 const mailSender = new (require('../utils/email'))();
 // eslint-disable-next-line no-undef
@@ -75,7 +75,6 @@ exports.addAccount = async (req, res) => {
         logging('info', base, req.sessionID, `Pseudo ${newAccount.pseudo} is available`
         );
         registerStatus.pseudoUnavailable = false;
-
       }
     })
     .catch((error) => {
@@ -92,22 +91,26 @@ exports.addAccount = async (req, res) => {
   /*-------------------------------------------------------------------------*
    * Chiffrage du mot de passe
    *-------------------------------------------------------------------------*/
-  await (function () {
+  await (function () {    
+    logging('info', base, req.sessionID, `Let's do some hashin' and saltin'...`)
     return new Promise((resolve, reject) => {
       // hachage avec sel du mot de passe
       try {
-        logging('info', base, req.sessionID, `Let's do some hashin' and saltin'...`);
-        const { hash, salt } = cipher.getSaltHash(newAccount.password);
-        newAccount.password = hash;
-        newAccount.salt = salt;
-        logging('info', base, req.sessionID, `Successful hashin' and saltin'!`);
-        resolve(true);
+        const { hash, salt } = passwordHandler.getSaltHash(newAccount.password);        
+        resolve({ hash, salt });
       } catch (error) {
-        logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`);
         reject(error);
       }
     });
-  })();
+  })()
+  .then((res) => {    
+    logging('info', base, req.sessionID, `Successful hashin' and saltin'!`);
+    newAccount.password = res.hash;
+    newAccount.salt = res.salt;
+  })
+  .catch(error => {
+    logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`, JSON.stringify(error));
+  });
 
   /*-----------------------------------------------------------------------------*
    * stockage de la photo

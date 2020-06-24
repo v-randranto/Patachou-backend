@@ -1,6 +1,6 @@
 'use strict';
 
-const checkPassword = require('../utils/cipher').check;
+const checkPassword = require('../utils/passwordHandler').check;
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
@@ -23,10 +23,11 @@ exports.checkAccount = (req, res) => {
   const loginStatus = {
     error: false,
     notFound: false,
+    pwdExpired: false,    
     authKO: false,
-    exp: false,
     jwtKO: false,
   };
+
   const returnData = {
     status: loginStatus,
     member: null,
@@ -42,20 +43,26 @@ exports.checkAccount = (req, res) => {
 
   accountData
     .findOne(req.sessionID, param)
-    .then((account) => {
+    .then(account => {
       if (account) {
-        foundAccount = account;
-        logging('info', base, req.sessionID, `Account ${req.body.pseudo} found, starting password checking...`);
-        return true;
+        logging('info', base, req.sessionID, `Account ${req.body.pseudo} found`);
+        foundAccount = account;        
+        if (foundAccount.pwdExpiringDate < new Date()) {
+          logging('info', base, req.sessionID, `Account ${req.body.pseudo} paswword has expired`);
+          loginStatus.pwdExpired = true;
+          return false
+        } else {
+          return true;
+        }
       } else {
         logging('info', base, req.sessionID, `Account ${req.body.pseudo} not found !`);
         loginStatus.notFound = true;
         return false;
       }
     })
-    .then((pseudo) => {
+    .then(accountFound => {
       // si membre trouvé, vérifier le mot de passe
-      if (pseudo) {
+      if (accountFound) {
         const passwordChecked = checkPassword(
           req.body.password,
           foundAccount.salt,
@@ -63,8 +70,6 @@ exports.checkAccount = (req, res) => {
         );
         if (passwordChecked) {
           logging('info', base, req.sessionID, `Account ${req.body.pseudo} password checked !`);
-          // TODO vérifier date d'expiration (gestion mot de passe perdu)
-          
           try {
             const token = jwt.sign(
               {
@@ -80,7 +85,6 @@ exports.checkAccount = (req, res) => {
             returnData.token = token;
             foundAccount.password = '*';
             foundAccount.salt = '*';
-            console.log('found account purgé', foundAccount)
             returnData.member = foundAccount;
           } catch (error) {
             logging('error', base, req.sessionID, `Jwt signing failed on account ${req.body.pseudo} !`);
@@ -93,7 +97,7 @@ exports.checkAccount = (req, res) => {
         }
       }
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, `Getting account ${req.body.pseudo} failed ! ${error}`);
       loginStatus.error = true;
     })
@@ -104,12 +108,11 @@ exports.checkAccount = (req, res) => {
       } else if (loginStatus.notFound) {
         logging('debug', base, req.sessionID, 'not found');
         res.status(httpStatusCodes.NOT_FOUND).json({loginStatus});
-      } else if ((loginStatus.authKO || loginStatus.jwtKO)) {        
+      } else if ( (loginStatus.pwdExpired || loginStatus.authKO || loginStatus.jwtKO) ) {        
         logging('debug', base, req.sessionID, 'login unauthorized');
         res.status(httpStatusCodes.UNAUTHORIZED).json({loginStatus});
       } else { 
-        logging('debug', base, req.sessionID, 'login authorized');       
-        console.log('return data', returnData);
+        logging('debug', base, req.sessionID, 'login authorized');  
         res.status(httpStatusCodes.OK).json(returnData);
       }
     });
