@@ -72,6 +72,7 @@ app.use((req, res, next) => {
 });
 
 // middleware vérifiant la validité du token transmis par le client
+// les opérations liées à la connection sont exclues
 app.use(
   jwt({ secret: process.env.TOKEN_KEY})
   .unless({path: /\/api\/connection/i })  

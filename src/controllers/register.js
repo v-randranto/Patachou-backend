@@ -12,6 +12,7 @@
 const passwordHandler = require('../utils/passwordHandler');
 const { toTitleCase } = require('../utils/titleCase');
 const mailSender = new (require('../utils/email'))();
+const emailContent = require('../constants/email.json');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
@@ -41,8 +42,7 @@ function NewAccount(initObject) {
 }
 
 const textEmail = function (pseudo) {
-  // eslint-disable-next-line no-undef
-  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br>${process.env.EMAIL_REGISTER_TEXT}</body></html>`;
+  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br>${emailContent.REGISTER.subject}</body></html>`;
 };
 
 exports.addAccount = async (req, res) => {
@@ -158,12 +158,9 @@ exports.addAccount = async (req, res) => {
    * Envoi de l'email de confirmation
    *----------------------------------------------------------------------------*/
   await mailSender
-    // eslint-disable-next-line no-undef
     .send(
       newAccount.email,
-      // eslint-disable-next-line no-undef
-      process.env.EMAIL_REGISTER_SUBJECT,
-      // eslint-disable-next-line no-undef
+      emailContent.REGISTER.subject,
       textEmail(newAccount.pseudo)
     )
     .then(() => {

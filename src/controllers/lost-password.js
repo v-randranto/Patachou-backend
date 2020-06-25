@@ -3,6 +3,7 @@
 const passwordHandler = require('../utils/passwordHandler');
 const { toTitleCase } = require('../utils/titleCase');
 const mailSender = new (require('../utils/email'))();
+const emailContent = require('../constants/email.json');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
@@ -21,8 +22,7 @@ const { expire } = require('../utils/dateFunctions');
  ****************************************************************************************/
  
 const textEmail = function (pseudo, password) {
-  // eslint-disable-next-line no-undef
-  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br><br>Voici votre mot de passe provisoire: <br><br>${password}<br><br>${process.env.EMAIL_PASSWORD_TEXT}</body></html>`;
+  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br><br>Voici votre mot de passe provisoire: <br><br>${password}<br><br>${emailContent.PASSWORD.text}</body></html>`;
 };
 
 const PASSORD_LENGTH = 8;
@@ -45,14 +45,15 @@ exports.renewPassword = async (req, res) => {
   let foundAccount, newPassword;
   
   // paramétrage de la requête mongo pour la mise à jour
+  // le mot de passe aura une validité de 2h
   const paramUpdate = {
     query: { _id: null },
     fields: {
       password: null,
       salt: null,
-      pwdExpiringDate: expire(2),
+      pwdExpiringDate: expire(2), 
       modificationDate: new Date(),
-      modificationAuthor: req.body.modificationAuthor
+      modificationAuthor: req.body.modificationAuthor // renseigné si administrateur
     }
   } 
   
@@ -148,9 +149,7 @@ exports.renewPassword = async (req, res) => {
     // eslint-disable-next-line no-undef
     .send(
       foundAccount.email,
-      // eslint-disable-next-line no-undef
-      process.env.EMAIL_PASSWORD_SUBJECT,
-      // eslint-disable-next-line no-undef
+      emailContent.PASSWORD.subject,
       textEmail(foundAccount.pseudo, newPassword)
     )
     .then(() => {

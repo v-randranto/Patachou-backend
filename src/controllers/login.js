@@ -23,7 +23,7 @@ exports.checkAccount = (req, res) => {
   const loginStatus = {
     error: false,
     notFound: false,
-    pwdExpired: false,    
+    pwdExpired: false,
     authKO: false,
     jwtKO: false,
   };
@@ -32,7 +32,8 @@ exports.checkAccount = (req, res) => {
     status: loginStatus,
     member: null,
     token: null,
-  };
+    expiresIn: 24 * 3600 * 1000  // jeton valide pendant 1j
+  };  
 
   let foundAccount;
   // Recherche du membre par son pseudo
@@ -43,14 +44,14 @@ exports.checkAccount = (req, res) => {
 
   accountData
     .findOne(req.sessionID, param)
-    .then(account => {
+    .then((account) => {
       if (account) {
         logging('info', base, req.sessionID, `Account ${req.body.pseudo} found`);
-        foundAccount = account;        
+        foundAccount = account;
         if (foundAccount.pwdExpiringDate < new Date()) {
           logging('info', base, req.sessionID, `Account ${req.body.pseudo} paswword has expired`);
           loginStatus.pwdExpired = true;
-          return false
+          return false;
         } else {
           return true;
         }
@@ -60,7 +61,7 @@ exports.checkAccount = (req, res) => {
         return false;
       }
     })
-    .then(accountFound => {
+    .then((accountFound) => {
       // si membre trouvé, vérifier le mot de passe
       if (accountFound) {
         const passwordChecked = checkPassword(
@@ -69,7 +70,8 @@ exports.checkAccount = (req, res) => {
           foundAccount.password
         );
         if (passwordChecked) {
-          logging('info', base, req.sessionID, `Account ${req.body.pseudo} password checked !`);
+          logging('info', base, req.sessionID, `Account ${req.body.pseudo} password checked !`
+          );
           try {
             const token = jwt.sign(
               {
@@ -78,7 +80,7 @@ exports.checkAccount = (req, res) => {
               },
               // eslint-disable-next-line no-undef
               process.env.TOKEN_KEY,
-              { expiresIn: '1h' },
+              { expiresIn: '1d' },
               { algorithm: 'HS256' }
             );
             logging('info', base, req.sessionID, `Account ${req.body.pseudo} token created`);
@@ -93,11 +95,10 @@ exports.checkAccount = (req, res) => {
         } else {
           loginStatus.authKO = true;
           logging('error', base, req.sessionID, `Account ${req.body.pseudo} password mismatch !`);
-          
         }
       }
     })
-    .catch(error => {
+    .catch((error) => {
       logging('error', base, req.sessionID, `Getting account ${req.body.pseudo} failed ! ${error}`);
       loginStatus.error = true;
     })
@@ -107,12 +108,16 @@ exports.checkAccount = (req, res) => {
         res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
       } else if (loginStatus.notFound) {
         logging('debug', base, req.sessionID, 'not found');
-        res.status(httpStatusCodes.NOT_FOUND).json({loginStatus});
-      } else if ( (loginStatus.pwdExpired || loginStatus.authKO || loginStatus.jwtKO) ) {        
+        res.status(httpStatusCodes.NOT_FOUND).json({ loginStatus });
+      } else if (
+        loginStatus.pwdExpired ||
+        loginStatus.authKO ||
+        loginStatus.jwtKO
+      ) {
         logging('debug', base, req.sessionID, 'login unauthorized');
-        res.status(httpStatusCodes.UNAUTHORIZED).json({loginStatus});
-      } else { 
-        logging('debug', base, req.sessionID, 'login authorized');  
+        res.status(httpStatusCodes.UNAUTHORIZED).json({ loginStatus });
+      } else {
+        logging('debug', base, req.sessionID, 'login authorized');
         res.status(httpStatusCodes.OK).json(returnData);
       }
     });

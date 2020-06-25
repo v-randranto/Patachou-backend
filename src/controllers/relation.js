@@ -17,12 +17,13 @@ const httpStatusCodes = require('../constants/httpStatusCodes.json');
 const { logging } = require('../utils/loggingHandler');
 const { toTitleCase } = require('../utils/titleCase');
 const mailSender = new (require('../utils/email'))();
+const emailContent = require('../constants/email.json');
 const relationData = require('../access-data/relationData');
 const Relation = require('../models/relationship');
 
 const textEmail = function (requesterPseudo, receiverPseudo) {
   // eslint-disable-next-line no-undef
-  return `<html><body><p>Bonjour ${toTitleCase(requesterPseudo)},<br>${process.env.EMAIL_REQUEST_TEXT} de ${toTitleCase(receiverPseudo)}</body></html>`;
+  return `<html><body><p>Bonjour ${toTitleCase(requesterPseudo)},<br>${emailContent.REQUEST.text} de ${toTitleCase(receiverPseudo)}</body></html>`;
 };
 
 /*=======================================================================================*
@@ -110,8 +111,7 @@ exports.add = async (req, res) => {
     // eslint-disable-next-line no-undef
     .send(
       complementaryData.receiverEmail,
-      // eslint-disable-next-line no-undef
-      process.env.EMAIL_REQUEST_SUBJECT,
+      emailContent.REQUEST.subject,
       textEmail(
         complementaryData.receiverPseudo,
         complementaryData.requesterPseudo

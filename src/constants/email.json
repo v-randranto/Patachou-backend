@@ -1,0 +1,16 @@
+{
+  "REGISTER": {
+    "subject": "Confirmation de votre inscription sur Patachou",
+    "text": "<br>Nous nous faisons une joie de vous compter parmi les becs sucrés de Patachou.<br><br>A bientôt!<br>L'équipe Patachou.</p>"
+  },
+
+  "REQUEST": {
+    "subject": "Demande d'ajout d'ami sur Patachou",
+    "text": "<br>Vous avez reçu une demande d'ajout d'ami.<br><br>A bientôt!<br>L'équipe Patachou.</p>"
+  },
+
+  "PASSWORD": {
+    "subject": "Réinitialisation du mot de passe sur Patachou",
+    "text": "Il est valide pour une durée de 2h. Après connexion il faudra le modifier dans votre profil.<br><br>A bientôt!<br>L'équipe Patachou.</p>"
+  }
+}
