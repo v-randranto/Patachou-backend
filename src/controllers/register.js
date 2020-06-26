@@ -20,9 +20,11 @@ const { logging } = require('../utils/loggingHandler');
 const { storePix } = require('../utils/photoHandler');
 const accountData = require('../access-data/accountData');
 
+// url de l'avatar par défaut
 // eslint-disable-next-line no-undef
 const default_avatar = process.env.DEFAULT_AVATAR;
 
+// statut de la mise à jour s à retourner au client
 const registerStatus = {
   pseudoUnavailable: false,
   save: false,
@@ -46,6 +48,12 @@ const textEmail = function (pseudo) {
 };
 
 exports.addAccount = async (req, res) => {
+
+  // if (!req.body || !req.body.pseudo || !req.body.firstName || !req.body.lastName || !req.body.password || !req.body.email) {
+  //   logging('error', base, req.sessionID, 'Bad request on registering account.');
+  //   res.status(httpStatusCodes.BAD_REQUEST).end();
+  // }
+
   logging('info', base, req.sessionID, 'Starting registering new account...');
   const bodyLog = new NewAccount(req.body.member);
   bodyLog.password = '***';
@@ -63,9 +71,10 @@ exports.addAccount = async (req, res) => {
   /*-----------------------------------------------------------------------------*
    * Vérification de la disponibilité du pseudonyme
    *-----------------------------------------------------------------------------*/
+
   await accountData
     .findOne(req.sessionID, param)
-    .then((account) => {
+    .then(account => {
       if (account) {
         logging('info', base, req.sessionID, `Pseudo ${newAccount.pseudo} is already in use !`
         );
@@ -77,10 +86,10 @@ exports.addAccount = async (req, res) => {
         registerStatus.pseudoUnavailable = false;
       }
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, `Checking pseudo has failed ! ${error}`
       );
-      throw error;
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
     });
 
   if (registerStatus.pseudoUnavailable) {
@@ -91,6 +100,7 @@ exports.addAccount = async (req, res) => {
   /*-------------------------------------------------------------------------*
    * Chiffrage du mot de passe
    *-------------------------------------------------------------------------*/
+
   await (function () {    
     logging('info', base, req.sessionID, `Let's do some hashin' and saltin'...`)
     return new Promise((resolve, reject) => {
@@ -103,13 +113,14 @@ exports.addAccount = async (req, res) => {
       }
     });
   })()
-  .then((res) => {    
+  .then(res => {    
     logging('info', base, req.sessionID, `Successful hashin' and saltin'!`);
     newAccount.password = res.hash;
     newAccount.salt = res.salt;
   })
   .catch(error => {
     logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`, JSON.stringify(error));
+    res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
   });
 
   /*-----------------------------------------------------------------------------*
@@ -123,11 +134,11 @@ exports.addAccount = async (req, res) => {
         logging('info', base, req.sessionID,  `${newAccount.pseudo} has a nice picture ${accountPhoto.name}.`
         );
         storePix(req.sessionID, accountPhoto.content)
-          .then((result) => {
+          .then(result => {
             newAccount.photoUrl = result.secure_url;
             resolve(true);
           })
-          .catch((error) => {
+          .catch(error => {
             reject(error);
           });
       } else {
@@ -148,15 +159,20 @@ exports.addAccount = async (req, res) => {
       registerStatus.save = true;
       return;
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, `Adding account has failed ! ${error}`);
       registerStatus.save = false;
-      throw error;
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
     });
 
+  if (!registerStatus.save) {
+    res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
+    return;
+  }
   /*-----------------------------------------------------------------------------*
    * Envoi de l'email de confirmation
    *----------------------------------------------------------------------------*/
+
   await mailSender
     .send(
       newAccount.email,
@@ -168,7 +184,7 @@ exports.addAccount = async (req, res) => {
       registerStatus.email = true;
       return;
     })
-    .catch((error) => {
+    .catch(error => {
       // une erreur sur le traitement email n'est pas bloquante
       logging('error', base, req.sessionID, `Email processing has failed ! ${error}`);
       registerStatus.email = false;
@@ -177,11 +193,12 @@ exports.addAccount = async (req, res) => {
   /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
+
   logging('info', base, req.sessionID, `Final registering status`, JSON.stringify(registerStatus)
   );
   if (registerStatus.save) {
-    res.status(httpStatusCodes.CREATED).json(registerStatus);
-  } else {
-    res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
-  }
+    res.status(httpStatusCodes.CREATED).json(registerStatus); 
+    return;  
+  } 
+  res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end(); 
 };

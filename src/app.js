@@ -35,7 +35,7 @@ app.use(express.static(PATH_STATIC_FILES));
 const dbUrl = process.env.DB_URL;
 
 mongoose
-  .connect(dbUrl, { useUnifiedTopology: true, useNewUrlParser: true })
+  .connect(dbUrl, { useUnifiedTopology: true, useNewUrlParser: true, useFindAndModify: false  })
   .then(() => {
     logging('info', base, null, `Connected to MongoDB`);
   })

@@ -18,8 +18,14 @@ const accountData = require('../access-data/accountData');
  ****************************************************************************************/
 
 exports.checkAccount = (req, res) => {
-  logging('info', base, req.sessionID, 'Starting login authentication...');
+  logging('info', base, req.sessionID, 'Starting login authentication...', JSON.stringify(req.body));
 
+  if (!req.body || !req.body.pseudo || !req.body.password) {
+    logging('error', base, req.sessionID, 'Bad request on check account');
+    res.status(httpStatusCodes.BAD_REQUEST).end();
+  }
+
+  // statuts de la connexion
   const loginStatus = {
     error: false,
     notFound: false,

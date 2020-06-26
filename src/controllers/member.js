@@ -17,15 +17,19 @@ const passwordHandler = require('../utils/passwordHandler');
 
 const { storePix } = require('../utils/photoHandler');
 
-// eslint-disable-next-line no-undef
-const default_avatar = process.env.DEFAULT_AVATAR;
 
 /*====================================================================================*
- * requête du compte d'un membre
+ * requête d'un compte
  *=====================================================================================*/
 
-exports.getAccount = (req, res) => {
-  logging('info', base, req.sessionID, 'Starting getting account by Id', req.body.id);
+exports.getAccount = (req, res) => {  
+
+  if (!req.body || !req.body.id) {
+    logging('error', base, req.sessionID, 'Bad request on get account');
+    res.status(httpStatusCodes.BAD_REQUEST).end();
+  }
+
+  logging('info', base, req.sessionID, 'Starting getting account by Id', JSON.stringify(req.body));
   // Recherche du membre par son id
   const param = {
     query: { _id: mongoose.mongo.ObjectID(req.body.id) },
@@ -33,7 +37,7 @@ exports.getAccount = (req, res) => {
   }
   accountData
     .findOne(req.sessionID, param)
-    .then((account) => {
+    .then(account => {
       if (account) {
         logging('info', base, req.sessionID, `Account with id ${req.body.id} found !`);
       } else {
@@ -41,7 +45,7 @@ exports.getAccount = (req, res) => {
       }
       res.status(httpStatusCodes.OK).json(account);
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, 
       `Getting account with id ${req.body.id} failed ! ${error}`);
       res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
@@ -53,7 +57,15 @@ exports.getAccount = (req, res) => {
  *=====================================================================================*/
 
 exports.searchAccounts = (req, res) => {
+  
+  if (!req.body) {
+    logging('error', base, req.sessionID, 'Bad request on search accounts');
+    res.status(httpStatusCodes.BAD_REQUEST).end();
+  }
+
   logging('info', base, req.sessionID, `Starting getting accounts with ${JSON.stringify(req.body)}`);
+
+
   const value = {
     $regex: req.body.term,
     $options: 'i',
@@ -72,7 +84,7 @@ exports.searchAccounts = (req, res) => {
 
   accountData
     .find(req.sessionID, param)
-    .then((accounts) => {
+    .then(accounts => {
       if (accounts.length) {
         logging('info', base, req.sessionID, `${accounts.lentgh} Accounts found !`);
       } else {
@@ -80,7 +92,7 @@ exports.searchAccounts = (req, res) => {
       }
       res.status(httpStatusCodes.OK).json(accounts);
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, `Getting accounts with query ${param} failed ! `, JSON.stringify(error));
       res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
     });
@@ -91,7 +103,14 @@ exports.searchAccounts = (req, res) => {
  *=====================================================================================*/
 
 exports.updateAccount = async (req, res) => {
+  if (!req.body || !req.body.id) {
+    logging('error', base, req.sessionID, 'Bad request on update account');
+    res.status(httpStatusCodes.BAD_REQUEST).end();
+  }
+  
   logging('info', base, req.sessionID, 'Starting updating account', JSON.stringify(req.body));
+
+  // statut de la mise à jour
   const updateStatus = {
     pseudoUnavailable: false,
     save: false,
@@ -104,15 +123,16 @@ exports.updateAccount = async (req, res) => {
     fields: null
   }
    
+  // objet contant les champs à modifier
   let updateAccount = {
     modificationDate: new Date(),
     modificationAuthor: req.body.modificationAuthor 
   }
 
    /*-----------------------------------------------------------------------------*
-   * Vérification de la disponibilité du pseudonyme
+   * Vérification de la disponibilité du pseudonyme si à modifier
    *-----------------------------------------------------------------------------*/
-  await (function () {
+  await ( () => {
     let param;
     return new Promise((resolve, reject) => {
       if (!req.body.pseudo) {
@@ -127,7 +147,7 @@ exports.updateAccount = async (req, res) => {
       }
       accountData
         .findOne(req.sessionID, param)
-        .then((account) => {
+        .then(account => {
           if (account) {
             logging('info', base, req.sessionID, `Pseudo ${updateAccount.pseudo} is already in use!` 
             );  
@@ -140,7 +160,7 @@ exports.updateAccount = async (req, res) => {
           }
           resolve(true)
         })
-        .catch((error) => {
+        .catch(error => {
           logging('error', base, req.sessionID, `Checking pseudo has failed ! ${error}`
           );
           reject(error)
@@ -154,22 +174,22 @@ exports.updateAccount = async (req, res) => {
     return;
   }
 
-
   // Alimentation du compte de modification avec les champs à modifier
-  await (function () {
+  await ( () => {
     return new Promise((resolve, reject) => {      
       try {
         for (let [key, value] of Object.entries(req.body)) {
           updateAccount[key] = value;
-        }   
+        }
         resolve(true);
-      } catch (error) {
+      } catch(error) {
         reject(error);
       }
     });
   })()
   .then(() => {
     paramUpdate.fields = updateAccount;
+    console.log('param update')
   })
   .catch(error => {
     logging('error', base, req.sessionID, `consitution of updateAccount went awry :(`, JSON.stringify(error));
@@ -177,13 +197,13 @@ exports.updateAccount = async (req, res) => {
  
    
   /*-------------------------------------------------------------------------*
-   * Chiffrage du mot de passe s'il a été saisi
+   * Chiffrage du mot de passe si à modifier
    *-------------------------------------------------------------------------*/
-  await (function () {
+  await ( () => {
+    console.log('test password')
     return new Promise((resolve, reject) => {
       if (!req.body.password) {
-        resolve(true);
-        return;
+        resolve(false);
       }
       // hachage avec sel du mot de passe
       try {
@@ -191,15 +211,17 @@ exports.updateAccount = async (req, res) => {
         const { hash, salt } = passwordHandler.getSaltHash(req.body.password);        
         logging('info', base, req.sessionID, `Successful hashin' and saltin'!`);
         resolve({ hash, salt });
-      } catch (error) {   
+      } catch(error) {   
         reject(error);
       }
     });
   })()
   .then(res => {
-    updateAccount.password = res.hash;
-    updateAccount.salt = res.salt;
-    updateAccount.pwdExpiringDate = new Date('01/01/2100');
+    if (res) {
+      updateAccount.password = res.hash;
+      updateAccount.salt = res.salt;
+      updateAccount.pwdExpiringDate = new Date('01/01/2100');
+    }
   })
   .catch(error => {
     logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`, JSON.stringify(error))
@@ -207,30 +229,30 @@ exports.updateAccount = async (req, res) => {
 
   
   /*-----------------------------------------------------------------------------*
-   * stockage de la photo
+   * stockage de la photo si chargée
    *----------------------------------------------------------------------------*/
 
-  await (function () {
+  await ( () => {
     return new Promise((resolve, reject) => {
-      if (req.body.photo) {
-        const accountPhoto = req.body.photo;
-        logging('info', base, req.sessionID, `${updateAccount.pseudo} has a nice picture ${accountPhoto.name}.`
-        );
-        storePix(req.sessionID, accountPhoto.content)
-          .then((result) => {
-            resolve(result.secure_url);
-          })
-          .catch((error) => {
-            reject(error);
-          });
-      } else {
-        logging('info', base, req.sessionID, `${updateAccount.pseudo} has no picture.` );
-        resolve(default_avatar);
+      if (!req.body.photo) {
+        resolve(false);
       }
+      const accountPhoto = req.body.photo;
+      logging('info', base, req.sessionID, `${updateAccount.pseudo} has a nice picture ${accountPhoto.name}.`
+      );
+      storePix(req.sessionID, accountPhoto.content)
+        .then(result => {
+          resolve(result.secure_url);
+        })
+        .catch(error => {
+          reject(error);
+        });       
     });
   })()
   .then(res => {
-    updateAccount.photoUrl = res;
+    if (res) {
+      updateAccount.photoUrl = res;
+    }
   })
   .catch(error => {
     logging('error', base, req.sessionID, `The hashin' and saltin' didn't go down well!`, JSON.stringify(error))
@@ -243,17 +265,17 @@ exports.updateAccount = async (req, res) => {
   
   await accountData
     .update(req.sessionID, paramUpdate)
-    .then((account) => {
+    .then(account => {
       if (account) {
         logging('info', base, req.sessionID, `Account with id ${req.body.id} updated !`);
         updateStatus.save = true;
-        updateStatus.photoUrl = account.photoUrl;
+        updateStatus.photoUrl = account.photoUrl; // retourner l'url de la photo
       } else {
         updateStatus.save = false;
         logging('info', base, req.sessionID, `Account with id ${req.body.id} not found !`);
       }
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, 
       `updating account with id ${req.body.id} failed ! ${error}`);
       updateStatus.save = false;

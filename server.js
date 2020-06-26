@@ -6,10 +6,8 @@ const http = require('http');
 const { logging } = require('./src/utils/loggingHandler');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
-
-const ent = require('ent');
-// const encode = require('ent/encode');
-// const decode = require('ent/decode');
+const relation = require('./src/controllers/relation');
+const { connect } = require('http2');
 
 // eslint-disable-next-line no-undef
 const port = normalizePort(process.env.PORT || 3000);
@@ -70,43 +68,157 @@ function onListening() {
   debug('Listening on ' + bind);
 }
 
-/**
- *  Partie Socket.io
- */
+/******************************************************************************************
+ *
+ *                       Partie Socket.io
+ * 
+ ******************************************************************************************/
+
 const io = require('socket.io')(server);
-const connections = [];
+
+// table des connexions au site (après login)
+const connections = []; 
+
+// recherche l'id d'une socket dans la table des connections à partir de l'id d'un membre
+const findSocketId = (memberId) => {
+  console.log('>find socket id, member ', memberId)
+  return new Promise((resolve, reject) => {
+    let socketIdFound = null;
+    try {
+      connections.forEach(connection => {
+        if (connection.memberId === memberId) {
+          socketIdFound = connection.socketId;
+          return;
+        }
+      });
+      resolve(socketIdFound);
+    } catch (error) {
+      reject(error)
+    }
+  });
+}
+
+// recherche l'index dans la table des connections de l'id d'une socket
+const getIndex = (socketId) => {
+  return new Promise((resolve, reject) => {
+    let index = -1;
+    try {
+      connections.forEach((connection, i) => {
+        if (connection.socketId === socketId) {
+          index = i;
+          return;
+        }
+      });
+    resolve(index);
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
 
 io.on('connect', function (socket) {
   logging('info', base, socket.id, `Socket.io client connected !`);
   // envoyer au client le nb de members connectés
-  socket.emit('connectedMembers', connections.length);
+  socket.emit('loggedIn', connections.length);
 
-  // insérer l'id socket de l'utilisateur qui vient de se connecter dans la table connexions et renvoyer à tous les clients la mise à jour du nb de membres connectés.
-  socket.on('connectMember', function (member) {
+  /*========================================================================================*
+   *   Gestion des membres connectés
+   *   - A chaque fois qu'un membre se connecte, l'id de la socket et des données du 
+   *     du membre sont ajoutés à la table des connections.
+   *   - ses données sont retirées quand il est déconnecté 
+   *=========================================================================================*/
+  
+   // un membre se connecte au site => ajout dans la table "connections"
+  socket.on('login', function (member) {
     logging('info', base, socket.id, `${member.pseudo} is connected.`);
-    socket.pseudo = ent.encode(member.pseudo);
-    connections.push(socket.id);
-    io.emit('connectedMembers', connections.length);
+    socket.member = member;
+    const connection = {
+      socketId: socket.id,
+      memberId: JSON.stringify(member._id),
+      member: member
+    };
+    console.log('connection créé', connection)
+    connections.push(connection);
+    io.emit('loggedIn', connections.length);
   });
 
-  // déconnecter la socket du membre qui a été déconnecté du site
-  socket.on('disconnectMember', function () {
-    logging('info', base, socket.id, `starting disconnection`);    
-    socket.disconnect();
+  // un membre se déconnecte du site => suppression de la table "connections"
+  socket.on('logout', async function () {
+    
+    logging('info', base, socket.id, `starting deleting ${socket.member.pseudo} from connections`);     
+    // TODO refacto
+    await getIndex(socket.id)
+    .then(index => {
+      const pseudo = socket.member.pseudo;
+      if (index !== -1) {
+        connections.splice(index, 1);
+        logging('info', base, socket.id, `${pseudo} deleted from connections`);        
+      } else {
+        logging('info', base, socket.id, `not found in connexions`);
+      }
+      io.emit('loggedIn', connections.length);
+    });
   });
 
-  // retirer de la table connexions le membre déconnecté
-  socket.on('disconnect', function (reason) {
-    logging('info', base, socket.id, `disconnected, reason: `, reason);
-    const index = connections.indexOf(socket.id);
-    if (index !== -1) {
-      connections.splice(index, 1);
-      logging('info', base, socket.id, `${socket.id.pseudo} disconnected`);
-      io.emit('connectedMembers', connections.length);
-    } else {
-      logging('info', base, socket.id, `not found in connexions`);
-    }
+  // déconnexion d'une socket => suppression de la table "connections" si ce n'est pas fait
+  socket.on('disconnect', async function (reason) {
+    logging('info', base, socket.id, `disconnected, reason: `, reason); 
+    
+    // TODO refacto
+    await getIndex(socket.id)
+    .then(index => {
+      
+      if (index !== -1) {
+        connections.splice(index, 1);
+        logging('info', base, socket.id, `deleted from connections`);        
+      } else {
+        logging('info', base, socket.id, `not found in connexions`);
+      }
+      socket.emit('disconnected');
+      io.emit('loggedIn', connections.length);
+    });
+    
   });
+
+  /*========================================================================================*
+   * Mise à jour d'une relation par un membre (confirmation, refus, suppression)
+   *   - mise à jour de la BDD
+   *   - récupérer la socketId du membre ami si celui-ci est connecté
+   *   - retourner aux 2 amis la relation mise à jour
+   *=========================================================================================*/
+  socket.on('updateRelation', async function (data) {
+    logging('info', base, socket.id, `update relation of ${socket.member.pseudo} from ${data} .`);
+
+    let updatedRelation;
+
+    await relation.wsUpdate(socket.id, data)
+      .then(res => {
+        console.log("update relation res", res)
+        updatedRelation = res;
+        console.log('socket', socket.id )
+        console.log('socket member', socket.member)
+        let friendId = socket.member._id === JSON.stringify(updatedRelation.requester) ? JSON.stringify(updatedRelation.receiver) : JSON.stringify(updatedRelation.requester);
+        console.log('friend id', friendId )
+        socket.emit('relationUpdate', updatedRelation);   
+
+        findSocketId(friendId)
+        .then((friendSocketId) => {
+          if (friendSocketId){
+          console.log('friend socket id', friendSocketId)
+          socket.to(friendSocketId).emit('relationUpdate', updatedRelation);
+          } else {
+            console.log('friend socket not found')
+          }
+        })
+      })
+      .catch(error => {
+        console.error(error);
+        throw error;
+      });
+   
+  });
+
 });
 
 

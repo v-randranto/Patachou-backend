@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
-const nodemailer = require('nodemailer');
-// eslint-disable-next-line no-undef
+
+const nodemailer = require('nodemailer')
 const { base } = require('path').parse(__filename);
 const { logging } = require('../utils/loggingHandler');
 

@@ -10,7 +10,7 @@
  * - Termination d'une relation confirmée (update)
  *
  ****************************************************************************************/
-const mongoose = require('mongoose');
+
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const httpStatusCodes = require('../constants/httpStatusCodes.json');
@@ -34,14 +34,16 @@ const textEmail = function (requesterPseudo, receiverPseudo) {
  *=======================================================================================*/
 
 exports.add = async (req, res) => {
-  logging(
-    'info',
-    base,
-    req.sessionID,
-    'Starting registering new relation...',
-    JSON.stringify(req.body)
+
+  if (!req.body) {
+    logging('error', base, req.sessionID, 'Bad request on add relation');
+    res.status(httpStatusCodes.BAD_REQUEST).end();
+  }
+  
+  logging('info', base, req.sessionID, 'Starting registering new relation...', JSON.stringify(req.body)
   );
 
+  // statuts de la demande d'ajout
   let requestStatus = {
     alreadyRelated: false,
     save: false,    
@@ -49,17 +51,15 @@ exports.add = async (req, res) => {
   };  
 
   // Données à mettre en base
-  const relation = req.body.relation;
-  relation.requester = mongoose.mongo.ObjectId(relation.requester);
-  relation.receiver = mongoose.mongo.ObjectId(relation.receiver);
+  const relation = req.body.relation;  
   // Données complémentaires pour l'envoi d'email
   const complementaryData = req.body.complementaryData;
 
   /*-----------------------------------------------------------------------------*
    * Vérification de la non existence d'une relation
    *----------------------------------------------------------------------------*/
-  // param de la requête pour vérifier l'absence d'une relation
 
+  // param de la requête pour vérifier l'absence d'une relation
   const param = {
     query: { 
       $or: [ 
@@ -71,7 +71,7 @@ exports.add = async (req, res) => {
 
   await relationData
     .findOne(req.sessionID, param)
-    .then((relation) => {
+    .then(relation => {
       if (relation) {
         logging('info', base, req.sessionID, `Already in relation ${relation._id}`);
         requestStatus.alreadyRelated = true;
@@ -80,7 +80,7 @@ exports.add = async (req, res) => {
         logging('info', base, req.sessionID, `No relation found`);
       }
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, `Checking absence of relation has failed ! ${error}`);
       throw error;
     });
@@ -89,9 +89,11 @@ exports.add = async (req, res) => {
     res.status(httpStatusCodes.OK).json(requestStatus);
     return;
   }
+
   /*-----------------------------------------------------------------------------*
    * Enregistrement en base de la demande
    *----------------------------------------------------------------------------*/
+
   await relationData
     .addOne(req.sessionID, relation)
     .then(() => {
@@ -99,7 +101,7 @@ exports.add = async (req, res) => {
       requestStatus.save = true;
       return;
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID, `Adding relation has failed ! ${error}`);
       throw error;
     });
@@ -107,6 +109,7 @@ exports.add = async (req, res) => {
   /*-----------------------------------------------------------------------------*
    * Envoi de l'email de confirmation
    *----------------------------------------------------------------------------*/
+
   await mailSender
     // eslint-disable-next-line no-undef
     .send(
@@ -122,7 +125,7 @@ exports.add = async (req, res) => {
       requestStatus.email = true;
       return;
     })
-    .catch((error) => {
+    .catch(error => {
       // une erreur sur le traitement email n'est pas propagée
       logging('error', base, req.sessionID, `Email processing has failed ! ${error}`);
     });
@@ -130,6 +133,7 @@ exports.add = async (req, res) => {
   /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
+
   logging('info', base, req.sessionID, `Final status`, JSON.stringify(requestStatus));
   if (requestStatus.save) {
     res.status(httpStatusCodes.CREATED).json(requestStatus);
@@ -142,28 +146,68 @@ exports.add = async (req, res) => {
  *=======================================================================================*/
 
 exports.getAll = async (req, res) => {
+
+  if (!req.body || !req.body.id) {
+    logging('error', base, req.sessionID, 'Bad request on get all relations');
+    res.status(httpStatusCodes.BAD_REQUEST).end();
+  }
+
   logging('info', base, req.sessionID, `Starting getting sent requests for id ${JSON.stringify(req.body)}`);
 
-  const _id = mongoose.mongo.ObjectID(req.body.id);
+  const id = req.body.id;
   const param = { 
     query: {
-      $or: [{ requester: _id }, { receiver: _id }],
+      $or: [{ requester: id }, { receiver: id }],
       status: { $in: ['PENDING', 'CONFIRMED'] },
     },
     accountFields: '_id pseudo firstName lastName presentation photoUrl',
   };
 
   relationData
-    .findAndPopulate(req.sessionID, param, _id)
-    .then((relations) => {
+    .findAndPopulate(req.sessionID, param, id)
+    .then(relations => {
       logging('info', base, req.sessionID, 'Getting sent requests is successful !');
       res.status(httpStatusCodes.OK).json(relations);
     })
-    .catch((error) => {
+    .catch(error => {
       logging('error', base, req.sessionID,  `Getting sent requests has failed ! ${error}`);
       res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
     });
 };
+
+/*=======================================================================================*
+ * Requête des relations en attente et confirmées d'un membre
+ *=======================================================================================*/
+
+exports.wsGetAll = async (socketId, memberId) => {
+
+  let relations = [];
+
+  logging('info', base, socketId, `Starting getting sent requests for id ${memberId}`);
+
+  // const _id = mongoose.mongo.ObjectID(memberId);
+  const param = { 
+    query: {
+      $or: [{ requester: memberId }, { receiver: memberId }],
+      status: { $in: ['PENDING', 'CONFIRMED'] },
+    },
+    accountFields: '_id pseudo firstName lastName presentation photoUrl',
+  };
+
+  await relationData
+    .findAndPopulate(socketId, param, memberId)
+    .then(res => {
+      relations = res;
+      logging('info', base, socketId, 'Getting sent requests is successful !');      
+    })
+    .catch(error => {
+      logging('error', base, socketId,  `Getting sent requests has failed ! ${error}`);
+      throw error;
+    });
+  
+  return relations;
+};
+
 
 /*=======================================================================================*
  *
@@ -173,82 +217,86 @@ exports.getAll = async (req, res) => {
  * - termination d'une relation confirmée
  *
  *=======================================================================================*/
-exports.update = async (req, res) => {
-  logging('info', base, req.sessionID, `Starting updating relation with ${JSON.stringify(req.body)}`);
-  let updateStatus = {
+exports.wsUpdate = async (socketId, data) => {
+
+  logging('info', base, socketId, `Starting updating relation  ${data}`);
+
+  // statuts de la mise à jour de la relation
+  const updateStatus = {
     badRequest: false,
-    save: false,
+    save: false
   };
+
   const param = {
-    query : { _id: req.body.id },
+    query : { _id: data.id },
     fields : { 
-      status: req.body.status,
+      status: data.status,
       modificationDate: Date.now(),
-      modificationAuthor: req.body.modificationAuthor }
+      modificationAuthor: data.modificationAuthor }
   };
 
   let updatedRelation = new Relation();
 
-  /*-------------------------------------------------------------------------*
-   * Contrôle que le statut de la relation à modifier est compatible avec la màj
-   *-------------------------------------------------------------------------*/
+  /*-----------------------------------------------------------------------------------*
+   *   Contrôle que le statut de la relation à modifier est compatible 
+   *-----------------------------------------------------------------------------------*/
   await relationData
-    .findOne(req.sessionID, param)
-    .then((relation) => {
+    .findOne(socketId, param)
+    .then(relation => {
       if (!relation) {
-        return;
+        throw new Error('bad request');
       }
-      switch (req.body.status) {
+      switch (data.status) {
         case 'CONFIRMED':
         case 'REJECTED':
           if (relation.status !== 'PENDING') {
-            updateStatus.badRequest = true;
-            return;
+            throw new Error('bad request');
           }
           break;
         case 'TERMINATED':
           if (relation.status !== 'CONFIRMED') {
             updateStatus.badRequest = true;
-            return;
+            throw new Error('bad request');
           }
           break;
         default:
-          updateStatus.badRequest = true;
+          throw new Error('bad request');
+          
       }
-      logging('info', base, req.sessionID, 'Checking status is successful !');
+      logging('info', base, socketId, 'Checking status is successful !');
     })
-    .catch((error) => {
-      logging('error', base, req.sessionID, `Checking status has failed ! ${error}`);
+    .catch(error => {
+      logging('error', base, socketId, `Checking status has failed ! ${error}`);
       throw error;
     });
   
-    if (updateStatus.badRequest) {
-      res.status(httpStatusCodes.BAD_REQUEST).end();
-      return;  
-    }
 
   /*-------------------------------------------------------------------------*
    * Enregistrement de la màj
    *-------------------------------------------------------------------------*/
+
   await relationData
-    .update(req.sessionID, param)
-    .then((relation) => {      
-      logging('info', base, req.sessionID, 'Updating relation is successful !', JSON.stringify(relation));
+    .update(socketId, param)
+    .then(relation => {      
+      logging('info', base, socketId, 'Updating relation is successful !', JSON.stringify(relation));
       updateStatus.save = true;
       updatedRelation = relation;
     })
-    .catch((error) => {
-      logging('error', base, req.sessionID, `Updating relation has failed ! ${error}`);
+    .catch(error => {
+      logging('error', base, socketId, `Updating relation has failed ! ${error}`);
+      
     });
 
   /*-----------------------------------------------------------------------------*
    * Retour du résultat au client
    *----------------------------------------------------------------------------*/
-  logging('info', base, req.sessionID, `Final registering status`, JSON.stringify(updateStatus)
-  );
-  if (updateStatus.save) {
-    res.status(httpStatusCodes.CREATED).json(updatedRelation);
-  } else {
-    res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
-  }
+
+logging('info', base, socketId, `Final registering status`, JSON.stringify(updateStatus)
+);
+
+if (updateStatus.save) {
+  return updatedRelation;
+} else {
+  throw new Error('Internal server error')
+}
 };

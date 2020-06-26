@@ -28,8 +28,15 @@ const textEmail = function (pseudo, password) {
 const PASSORD_LENGTH = 8;
 
 exports.renewPassword = async (req, res) => {
+
+  if (!req.body || !req.body.email) {
+    logging('error', base, req.sessionID, 'Bad request on renew password');
+    res.status(httpStatusCodes.BAD_REQUEST).end();
+  }
+  
   logging('info', base, req.sessionID, 'Starting renewing password...');
 
+  // statuts de la réinitialisation du mot de passe
   const renewStatus = {
     emailNotFound: false,
     save: false,
