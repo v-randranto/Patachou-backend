@@ -16,7 +16,8 @@ const accountSchema = mongoose.Schema({
   presentation: { type: String, required: true },
   photoUrl: { type: String, required: true },
   creationDate: { type: Date, required: true, default: Date.now },
-  modificationDate: { type: Date, required: true, default: Date.now }
+  modificationDate: { type: Date, required: true, default: Date.now },
+  isLoggedIn: { type: Boolean, required: true, default: false}
 });
 
 module.exports = mongoose.model('Account', accountSchema);

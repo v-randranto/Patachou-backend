@@ -21,8 +21,10 @@ const { expire } = require('../utils/dateFunctions');
  *
  ****************************************************************************************/
  
+// eslint-disable-next-line no-undef
+const sender = process.env.EMAIL_FROM;
 const textEmail = function (pseudo, password) {
-  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br><br>Voici votre mot de passe provisoire: <br><br>${password}<br><br>${emailContent.PASSWORD.text}</body></html>`;
+  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br><br>${emailContent.PASSWORD.text1}<br><br>${password}<br><br>${emailContent.PASSWORD.text2}<br><br>${emailContent.PASSWORD.signature}</p></body></html>`;
 };
 
 const PASSORD_LENGTH = 8;
@@ -155,6 +157,7 @@ exports.renewPassword = async (req, res) => {
   await mailSender
     // eslint-disable-next-line no-undef
     .send(
+      sender,
       foundAccount.email,
       emailContent.PASSWORD.subject,
       textEmail(foundAccount.pseudo, newPassword)

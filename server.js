@@ -7,6 +7,7 @@ const { logging } = require('./src/utils/loggingHandler');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const relation = require('./src/controllers/relation');
+const logout = require('./src/controllers/login');
 
 // eslint-disable-next-line no-undef
 const port = normalizePort(process.env.PORT || 3000);
@@ -80,7 +81,6 @@ const connections = [];
 
 // recherche l'id d'une socket dans la table des connections à partir de l'id d'un membre
 const findSocketId = (memberId) => {
-  console.log('>find socket id, member ', memberId)
   return new Promise((resolve, reject) => {
     let socketIdFound = null;
     try {
@@ -126,6 +126,7 @@ io.on('connect', function (socket) {
    *   - A chaque fois qu'un membre se connecte, l'id de la socket et des données du 
    *     du membre sont ajoutés à la table des connections.
    *   - ses données sont retirées quand il est déconnecté 
+   *   - son statut de connexion est mis à jour
    *=========================================================================================*/
   
    // un membre se connecte au site => ajout dans la table "connections"
@@ -137,28 +138,39 @@ io.on('connect', function (socket) {
       memberId: JSON.stringify(member._id),
       member: member
     };
-    console.log('connection créé', connection)
     connections.push(connection);
     io.emit('loggedIn', connections.length);
   });
 
-  // un membre se déconnecte du site => suppression de la table "connections"
+  // un membre se déconnecte du site => suppression de la table "connections" et mise à jour du statut de connexion du compte
   socket.on('logout', async function () {
     
     logging('info', base, socket.id, `starting deleting ${socket.member.pseudo} from connections`);     
     // TODO refacto
     await getIndex(socket.id)
-    .then(index => {
-      const pseudo = socket.member.pseudo;
-      if (index !== -1) {
-        connections.splice(index, 1);
-        logging('info', base, socket.id, `${pseudo} deleted from connections`);        
-      } else {
-        logging('info', base, socket.id, `not found in connexions`);
-      }
-      io.emit('loggedIn', connections.length);
-    });
+      .then(index => {
+        const pseudo = socket.member.pseudo;
+        if (index !== -1) {
+          connections.splice(index, 1);
+          logging('info', base, socket.id, `${pseudo} deleted from connections`);        
+        } else {
+          logging('info', base, socket.id, `not found in connexions`);
+        }
+        io.emit('loggedIn', connections.length);
+      });
+
+    await logout.wsUpdateLoginStatus(socket.id, socket.member._id)  
+      .then(res => {
+        if (res) {
+          logging('info', base, socket.id, `${socket.member.pseudo} updating login status is a success`); 
+        }
+      })
+      .catch(error => {
+        logging('error', base, socket.id, `${socket.member.pseudo} updating login status has failed ${error}`); 
+      })
   });
+
+ 
 
   // déconnexion d'une socket => suppression de la table "connections" si ce n'est pas fait
   socket.on('disconnect', async function (reason) {
@@ -193,27 +205,19 @@ io.on('connect', function (socket) {
 
     await relation.wsUpdate(socket.id, data)
       .then(res => {
-        console.log("update relation res", res)
         updatedRelation = res;
-        console.log('socket', socket.id )
-        console.log('socket member', socket.member)
-
         let friendId = JSON.stringify(socket.member._id) === JSON.stringify(updatedRelation.requester) ? JSON.stringify(updatedRelation.receiver) : JSON.stringify(updatedRelation.requester);
-        console.log('friend id', friendId )
         socket.emit('relationUpdate', updatedRelation);   
 
         findSocketId(friendId)
         .then((friendSocketId) => {
           if (friendSocketId){
-          console.log('friend socket id', friendSocketId)
           socket.to(friendSocketId).emit('relationUpdate', updatedRelation);
-          } else {
-            console.log('friend socket not found')
-          }
+          } 
         })
       })
       .catch(error => {
-        console.error(error);
+        logging('error', base, socket.id, `${updatedRelation._id} updating relation has failed ${error}`); 
         throw error;
       });
    

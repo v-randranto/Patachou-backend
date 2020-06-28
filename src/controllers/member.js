@@ -189,7 +189,6 @@ exports.updateAccount = async (req, res) => {
   })()
   .then(() => {
     paramUpdate.fields = updateAccount;
-    console.log('param update')
   })
   .catch(error => {
     logging('error', base, req.sessionID, `consitution of updateAccount went awry :(`, JSON.stringify(error));
@@ -200,7 +199,6 @@ exports.updateAccount = async (req, res) => {
    * Chiffrage du mot de passe si à modifier
    *-------------------------------------------------------------------------*/
   await ( () => {
-    console.log('test password')
     return new Promise((resolve, reject) => {
       if (!req.body.password) {
         resolve(false);
@@ -294,3 +292,4 @@ exports.updateAccount = async (req, res) => {
     res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).end();
   }
 };
+

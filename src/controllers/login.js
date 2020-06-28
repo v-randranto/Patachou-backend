@@ -34,6 +34,12 @@ exports.checkAccount = (req, res) => {
     jwtKO: false,
   };
 
+  // mise à jour du statut de connexion du membre
+ const paramUpdate = {
+  query: { _id: null },
+  fields: { isLoggedIn: true}
+}
+
   const returnData = {
     status: loginStatus,
     member: null,
@@ -42,6 +48,7 @@ exports.checkAccount = (req, res) => {
   };  
 
   let foundAccount;
+
   // Recherche du membre par son pseudo
   const param = {
     query: { pseudo: req.body.pseudo },
@@ -50,7 +57,7 @@ exports.checkAccount = (req, res) => {
 
   accountData
     .findOne(req.sessionID, param)
-    .then((account) => {
+    .then(account => {
       if (account) {
         logging('info', base, req.sessionID, `Account ${req.body.pseudo} found`);
         foundAccount = account;
@@ -67,7 +74,7 @@ exports.checkAccount = (req, res) => {
         return false;
       }
     })
-    .then((accountFound) => {
+    .then(accountFound => {
       // si membre trouvé, vérifier le mot de passe
       if (accountFound) {
         const passwordChecked = checkPassword(
@@ -94,17 +101,45 @@ exports.checkAccount = (req, res) => {
             foundAccount.password = '*';
             foundAccount.salt = '*';
             returnData.member = foundAccount;
+            loginStatus.jwtKO = false;
           } catch (error) {
             logging('error', base, req.sessionID, `Jwt signing failed on account ${req.body.pseudo} !`);
             loginStatus.jwtKO = true;
+            return false;
           }
-        } else {
-          loginStatus.authKO = true;
+          loginStatus.authKO = false;
+          return true;
+        } else {          
           logging('error', base, req.sessionID, `Account ${req.body.pseudo} password mismatch !`);
+          loginStatus.authKO = true;
+          return false;
         }
+      } else {
+        return false
       }
     })
-    .catch((error) => {
+    .then(accountAuthenticated => {
+      if (accountAuthenticated) {
+        logging('info', base, req.sessionID, `starting updating login status`);
+        paramUpdate.query._id = foundAccount._id;
+        
+        accountData
+        .update(req.sessionID, paramUpdate)
+        .then(account => {
+          if (account) {            
+            logging('info', base, req.sessionID, `loggedIn status updated !`);
+          } else {
+            logging('error', base, req.sessionID, `Account with id ${foundAccount._id} not found  !`);
+            throw new Error('account not found')
+          }
+        })
+        .catch(error => {
+          logging('error', base, req.sessionID, `updating login status failed ! ${error}`);
+          throw error;
+        })
+      }
+    })
+    .catch(error => {
       logging('error', base, req.sessionID, `Getting account ${req.body.pseudo} failed ! ${error}`);
       loginStatus.error = true;
     })
@@ -128,3 +163,30 @@ exports.checkAccount = (req, res) => {
       }
     });
 };
+
+exports.wsUpdateLoginStatus = async (socketId, memberId) => {
+
+  // mise à jour du statut de connexion du membre
+  const paramUpdate = {
+    query: { _id: memberId },
+    fields: { isLoggedIn: false}
+  } 
+
+  logging('info', base, socketId, `Starting updating account  ${memberId}`);
+ 
+  accountData
+  .update(socketId, paramUpdate)
+  .then(account => {
+    if (account) {            
+      logging('info', base, socketId, `loggedIn status updated !`);
+    } else {
+      logging('error', base, socketId, `Account with id ${memberId} nofound  !`);
+      throw new Error('account not found')
+    }
+  })
+  .catch(error => {
+    logging('error', base, socketId, `updating login status failed ! ${error}`);
+    throw error;
+  })
+
+}

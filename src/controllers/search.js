@@ -63,7 +63,7 @@ exports.getAccounts = async (req, res) => {
         },
       ],
     },
-    fields: '_id pseudo firstName lastName sex email presentation photoUrl',
+    fields: '_id pseudo firstName lastName sex birthDate email presentation photoUrl is LoggedIn',
   };
   
   // paramètres de la requête de recherche des relations
@@ -88,8 +88,7 @@ exports.getAccounts = async (req, res) => {
       } else {
         logging('info', base, req.sessionID, `No account found!`);
         searchStatus.noAccount = true;        
-      }      
-      console.log("reaching this stage !")
+      } 
       foundAccounts = accounts;
     })
     .catch((error) => {

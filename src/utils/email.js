@@ -14,15 +14,15 @@ const transporter = nodemailer.createTransport({
 
   // TODO provisoire à supprimer
   // vf. Self-Signed Certificate in Chain Issues on Node.js
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 let mailSender = function () {
 }
 
-mailSender.prototype.send = async function (recipient, subject, text) {
+mailSender.prototype.send = async function (sender, recipient, subject, text) {
     logging('info', base, null, `Starting sending email to ${recipient} - ${subject}`);
     let mailOptions = {
-        from: process.env.EMAIL_FROM,
+        from: sender,
         to: recipient,
         subject: subject,
         text: text,

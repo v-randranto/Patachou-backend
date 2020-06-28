@@ -21,9 +21,10 @@ const emailContent = require('../constants/email.json');
 const relationData = require('../access-data/relationData');
 const Relation = require('../models/relationship');
 
-const textEmail = function (requesterPseudo, receiverPseudo) {
-  // eslint-disable-next-line no-undef
-  return `<html><body><p>Bonjour ${toTitleCase(requesterPseudo)},<br>${emailContent.REQUEST.text} de ${toTitleCase(receiverPseudo)}</body></html>`;
+// eslint-disable-next-line no-undef
+const sender = process.env.EMAIL_FROM;
+const textEmail = function (receiverPseudo, requesterPseudo) {
+  return `<html><body><p>Bonjour ${toTitleCase(receiverPseudo)},<br><br>${emailContent.REQUEST.text} de ${toTitleCase(requesterPseudo)}.<br><br>${emailContent.REQUEST.signature}</p></body></html>`;
 };
 
 /*=======================================================================================*
@@ -113,6 +114,7 @@ exports.add = async (req, res) => {
   await mailSender
     // eslint-disable-next-line no-undef
     .send(
+      sender,
       complementaryData.receiverEmail,
       emailContent.REQUEST.subject,
       textEmail(
@@ -160,7 +162,7 @@ exports.getAll = async (req, res) => {
       $or: [{ requester: id }, { receiver: id }],
       status: { $in: ['PENDING', 'CONFIRMED'] },
     },
-    accountFields: '_id pseudo firstName lastName presentation photoUrl',
+    accountFields: '_id pseudo firstName lastName sex birthDate email presentation photoUrl isLoggedIn',
   };
 
   relationData

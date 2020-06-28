@@ -43,8 +43,10 @@ function NewAccount(initObject) {
   this.photo = {};
 }
 
+// eslint-disable-next-line no-undef
+const sender = process.env.EMAIL_FROM;
 const textEmail = function (pseudo) {
-  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br>${emailContent.REGISTER.subject}</body></html>`;
+  return `<html><body><p>Bonjour ${toTitleCase(pseudo)},<br><br>${emailContent.REGISTER.text}<br><br>${emailContent.REGISTER.signature}</p></body></html>`;
 };
 
 exports.addAccount = async (req, res) => {
@@ -175,6 +177,7 @@ exports.addAccount = async (req, res) => {
 
   await mailSender
     .send(
+      sender,
       newAccount.email,
       emailContent.REGISTER.subject,
       textEmail(newAccount.pseudo)
