@@ -28,7 +28,6 @@ app.use(bodyParser.json({limit: '1mb', extended: true}));
 app.use(bodyParser.urlencoded({limit: '1mb', extended: true}));
 
 app.use(cors());
-// TODO revoir l'utilisation d'helmet
 
 app.use(express.static(PATH_STATIC_FILES));
 
@@ -73,10 +72,10 @@ app.use((req, res, next) => {
 
 // middleware vérifiant la validité du token transmis par le client
 // les opérations liées à la connection sont exclues
-app.use(
-  jwt({ secret: process.env.TOKEN_KEY})
-  .unless({path: /\/api\/connection/i })  
-  );
+// app.use(
+//   jwt({ secret: process.env.TOKEN_KEY})
+//   .unless({path: /\/api\/connection/i })  
+//   );
 
 // routes
 app.use(CONNECTION_API_PATH, connectionRouter);

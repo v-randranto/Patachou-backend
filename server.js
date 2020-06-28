@@ -7,7 +7,6 @@ const { logging } = require('./src/utils/loggingHandler');
 // eslint-disable-next-line no-undef
 const { base } = require('path').parse(__filename);
 const relation = require('./src/controllers/relation');
-const { connect } = require('http2');
 
 // eslint-disable-next-line no-undef
 const port = normalizePort(process.env.PORT || 3000);
@@ -198,7 +197,8 @@ io.on('connect', function (socket) {
         updatedRelation = res;
         console.log('socket', socket.id )
         console.log('socket member', socket.member)
-        let friendId = socket.member._id === JSON.stringify(updatedRelation.requester) ? JSON.stringify(updatedRelation.receiver) : JSON.stringify(updatedRelation.requester);
+
+        let friendId = JSON.stringify(socket.member._id) === JSON.stringify(updatedRelation.requester) ? JSON.stringify(updatedRelation.receiver) : JSON.stringify(updatedRelation.requester);
         console.log('friend id', friendId )
         socket.emit('relationUpdate', updatedRelation);   
 
