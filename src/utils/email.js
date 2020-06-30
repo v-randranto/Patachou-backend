@@ -12,9 +12,9 @@ const transporter = nodemailer.createTransport({
     }
   });
 
-  // TODO provisoire à supprimer
-  // vf. Self-Signed Certificate in Chain Issues on Node.js
-// process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+if (process.env.NODE_ENV === 'development') {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 let mailSender = function () {
 }
