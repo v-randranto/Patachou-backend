@@ -19,6 +19,8 @@ exports.email = (req, res) => {
       res.status(httpStatusCodes.BAD_REQUEST).end();
       return;
     }  
+//dans nodemailer, l'alimentation de l'option 'from' n'est pas prise en compte (ballot ça), cette donnée est systématiquement alimenté avec l'adresse du compte gmail, d'où le contournement ci-dessous
+  const text = `Email utilisateur: ${req.body.email}<br><br>${req.body.text}` 
 
   mailSender
     .send(
@@ -26,7 +28,7 @@ exports.email = (req, res) => {
       // eslint-disable-next-line no-undef
       process.env.EMAIL_USER,
       req.body.subject,
-      req.body.text
+      text
     )
     .then(() => {
       emailStatus = true;
