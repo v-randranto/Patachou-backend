@@ -1,3 +1,5 @@
+# La version déployée sur Heroku est la branche 'develop', le merge dans le 'master' n'a pas pu être ralisé.
+
 # Frameworks
 
 Node/Express, MongoDB/Mongoose
