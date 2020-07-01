@@ -176,7 +176,6 @@ io.on('connect', function (socket) {
   socket.on('disconnect', async function (reason) {
     logging('info', base, socket.id, `disconnected, reason: `, reason); 
     
-    // TODO refacto
     await getIndex(socket.id)
     .then(index => {
       

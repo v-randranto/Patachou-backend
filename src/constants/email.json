@@ -5,7 +5,7 @@
   },
 
   "REQUEST": {
-    "subject": "Demande d'ajout d'ami sur Patachou",
+    "subject": "Votre demande d'ajout d'ami sur Patachou",
     "text": "Vous avez reçu une demande d'ajout d'ami",
     "signature": "https://patachou.herokuapp.com/<br><br>A bientôt!<br>L'équipe Patachou."
   },
